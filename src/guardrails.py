@@ -113,6 +113,10 @@ INPUT_RULES: tuple[Rule, ...] = (
 )
 
 
+INPUT_CODES: frozenset[str] = frozenset({rule.code for rule in INPUT_RULES} | {CARD_RULE, TRUNCATION_RULE})
+BLOCKING_INPUT_CODES: frozenset[str] = frozenset(rule.code for rule in INPUT_RULES if rule.risk is Risk.HIGH)
+
+
 def mask_cards(text: str) -> tuple[str, bool]:
     masked = CARD_CANDIDATE.sub(_mask_if_card, text)
     return masked, masked != text
