@@ -9,7 +9,7 @@ Servicio de triage de tickets de soporte con LLMs: recibe una consulta en texto 
 ## Requisitos
 
 - Python 3.12
-- API keys de OpenAI y de Anthropic
+- API key de [OpenRouter](https://openrouter.ai) y de Gemini ([Google AI Studio](https://aistudio.google.com)). Las dos tienen un nivel gratuito.
 
 ## Instalación
 
@@ -36,7 +36,7 @@ Copiar `.env.example` a `.env` y completar las claves:
 
 | Variable | Descripción |
 |---|---|
-| `OPENAI_API_KEY` | API key de OpenAI |
-| `ANTHROPIC_API_KEY` | API key de Anthropic |
+| `OPENROUTER_API_KEY` | API key de OpenRouter |
+| `GEMINI_API_KEY` | API key de Gemini (Google AI Studio) |
 
 `.env` está en `.gitignore`: las credenciales nunca se suben al repositorio.
