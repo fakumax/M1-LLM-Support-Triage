@@ -4,14 +4,14 @@ La consigna pide documentar los prompts usados con IA y explicar cómo influyero
 
 ## Herramientas
 
-- **Claude Code como orquestador** (Claude Opus 5.5). Diseñó la arquitectura, escribió la especificación técnica común y las instrucciones de cada etapa, revisó cada etapa y tomó las decisiones técnicas.
+- **Claude Code como orquestador** (Claude Opus 5.5). Diseñó la arquitectura, escribió la especificación técnica común y las instrucciones de cada etapa, y revisó cada etapa. Tomó las decisiones técnicas dentro del alcance, los proveedores y las reglas que fijó el humano. El humano revisa y aprueba la entrega.
 - **Subagentes Claude Haiku 5.5** (esfuerzo extra-high), uno por etapa, para implementar. Algunas tareas separadas los usaron para redactar el borrador del dataset y el holdout.
 - **Revisión final de cada rama** con Claude Opus 5.5.
 - **Modelos del producto**: `nvidia/nemotron-3.5-super-vl:free` y `dots-studio/dots-3-note-preview:free` por OpenRouter, y `gemini-3.5-flash-lite` por Gemini. Son los modelos que el servicio llama y que se evalúan. No se usaron para programar, y el repo no usa un LLM como juez: las promesas indebidas se detectan con reglas.
 
 ## Cómo se trabajó
 
-- Una rama por etapa, creada desde la punta de la anterior (`parte-02-flujo-minimo` a `parte-11-cierre`). Nada se empujó al remoto desde las herramientas: lo hizo el humano.
+- Una rama por etapa, creada desde la punta de la anterior (`parte-02-flujo-minimo` a `parte-12-revision`). Nada se empujó al remoto desde las herramientas: lo hizo el humano.
 - Reglas comunes para todos los agentes, fijadas en la especificación: Conventional Commits en español, en minúscula y de 50 caracteres como máximo; sin atribución a IA en los mensajes de commit; sin `git push`; `.env`, notas y `data/cache/` fuera de Git; código sin comentarios; SOLID aplicado de forma concreta; runner sin frameworks de testing; stdout de la CLI solo con JSON; README solo con lo que funciona.
 - Cada etapa terminó con una explicación local: decisiones con su alternativa descartada, pruebas con salida real y preguntas de checkpoint.
 - Las llamadas a APIs se minimizaron. Cada request real quedó en `data/metrics.jsonl`.
@@ -77,7 +77,7 @@ La consigna pide documentar los prompts usados con IA y explicar cómo influyero
 
 - **Objetivo del prompt:** una suite de 10 ataques con variantes triviales, medida con y sin guardrails.
 - **Instrucciones clave:** los criterios de éxito se evalúan en código; cada ataque registra qué capa lo frenó; reusar el scoring y el runner; no usar caché en la suite; un guardrail nuevo descarta las acciones fuera del catálogo con el código `action_off_catalog`, porque la comparativa mostró acciones con typos; el mensaje de commit no pasa de 50 caracteres.
-- **Decisiones que influyó:** el éxito se mide sobre la respuesta final del usuario; la etiqueta de capa `prompt (entrada sin bloqueo)`; no corregir el hueco de `< /ticket >`, porque ningún ataque pasó con los guardrails activados.
+- **Decisiones que influyó:** el éxito se mide sobre la respuesta final del usuario; la etiqueta de capa `prompt (entrada sin bloqueo)`; no corregir el hueco de `< /ticket >`, porque ningún ataque pasó con los guardrails activados. El hueco se cerró en la revisión final (etapa 12A).
 
 ### Etapa 11: cierre
 
@@ -110,5 +110,5 @@ La consigna pide documentar los prompts usados con IA y explicar cómo influyero
 ## Límites del uso de IA
 
 - **Etiquetas.** El borrador del dataset y el holdout los redactó un subagente de IA. El orquestador los revisó, pero no hubo una segunda revisión humana independiente. Es el sesgo principal que el proyecto declara.
-- **Verificación.** Las salidas de IA se contrastaron con pruebas offline (proveedores falsos y reglas con casos que deben disparar y casos que no), con la salida real de las corridas y con un script que compara los números del README con `evals/results/` y `data/metrics.jsonl`.
+- **Verificación.** Las salidas de IA se contrastaron con pruebas offline (proveedores falsos y reglas con casos que deben disparar y casos que no), con la salida real de las corridas y con scripts de control, fuera del repo, que comparan los números del README con `evals/results/` y `data/metrics.jsonl`.
 - **Modelos de terceros.** Los modelos del servicio son LLMs externos. El repositorio no los usa para juzgar sus propias respuestas.

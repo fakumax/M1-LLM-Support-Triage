@@ -10,7 +10,7 @@ Las 315 primeras líneas del archivo no tienen el campo `cached`, que se agregó
 
 | Campo | Pregunta que responde |
 |---|---|
-| `timestamp` | ¿Cuándo se hizo el request? ISO 8601 en UTC. |
+| `timestamp` | ¿Cuándo terminó el request? Es la hora UTC en que se arma el registro, justo después de `triage()`, así que incluye los reintentos. ISO 8601. |
 | `source` | ¿Qué lo disparó? `cli` para la CLI, `eval` para el runner de evals y `adversarial` para la suite de ataques. |
 | `provider`, `model` | ¿Qué proveedor y qué modelo respondieron? |
 | `prompt_version` | ¿Con qué versión del prompt se generó la respuesta? |

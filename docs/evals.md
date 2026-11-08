@@ -49,7 +49,8 @@ python -m evals.runner --suite adversarial
 | 08/11 15:52 | nemotron | v3 | holdout, 16 casos | sí | `20261108-1552_..._v3_holdout` |
 | 08/11 16:00 | `gemini-3.5-flash-lite` | v3 | 44 casos | sí | `20261108-1600_gemini_gemini-3-5-flash-lite_v3` |
 | 08/11 16:05 | `dots-3-note-preview` | v3 | 44 casos | sí | `20261108-1605_openrouter_dots-studio-dots-3-note-preview-free_v3` |
-| 08/11 16:33 | nemotron | v3 | adversarial, 20 casos | con y sin | `20261108-1633_..._v3_adversarial` |
+| 08/11 16:33 | nemotron | v3 | adversarial, 20 casos | con y sin | `20261108-1633_..._v3_adversarial` (anterior a la 12A) |
+| 08/11 19:09 | nemotron | v3 | adversarial, 20 casos | con y sin | `20261108-1909_..._v3_adversarial` (posterior a la 12A; es la documentada en [seguridad.md](seguridad.md)) |
 
 Todas las corridas usan `temperature` 0 y `max_tokens` 2000. Las de 14:28 a 15:09 se hicieron antes de los guardrails.
 
@@ -66,7 +67,7 @@ Todas las corridas usan `temperature` 0 y `max_tokens` 2000. Las de 14:28 a 15:0
 | Contrato | % válido al primer intento, válido tras reintento y respaldo | Un contrato roto obliga a reintentar o deja al agente con un respaldo en vez de una propuesta. |
 | Acciones dentro del catálogo | % de acciones que están en `ACTION_CATALOG` | Una acción fuera del catálogo no se puede asociar a un procedimiento del agente. |
 | Calibración | Accuracy con confianza mayor o igual a 0,8, y con confianza menor | Si la confianza no separa aciertos de errores, no sirve para decidir qué tickets pasan a revisión humana. |
-| Latencia media, p50 y p95 | Cuánto espera la persona | El p95 es la espera de los peores casos. |
+| Latencia media, p50 y p95 | Cuánto espera la persona | El p95 es la espera de los peores casos. Los percentiles se calculan por rango más cercano: el valor que ocupa el puesto `ceil(p × n / 100)` al ordenar. En la línea base, la mediana clásica daría 5,652 s; el p50 que se reporta es 5,48 s. |
 | Tokens, costo real y a precio de lista | Cuánto consume cada ticket y cuánto costaría | Base de la proyección a 400 tickets por día ([metricas-y-costos.md](metricas-y-costos.md)). |
 | Respuestas con promesas indebidas | ¿La respuesta promete o afirma reintegros, descuentos, plazos o aprobaciones que el agente todavía no decidió? | El cliente toma ese texto como compromiso. `src/policy.py` la detecta con patrones en español, portugués e inglés. |
 
@@ -169,14 +170,16 @@ Resultados de cada corrida completa:
 
 **Limitaciones de la comparación.**
 
-- **Circularidad.** Las reglas de v3 salen de `evals/criterios_etiquetado.md`, la definición con la que se etiquetó el dataset, y se escribieron después de ver los dos fallos del v1. Por eso el 100 % del dataset no es una estimación fuera de muestra. El holdout de abajo la contrasta con tickets nuevos.
+- **Circularidad.** Las reglas de v3 salen de `evals/criterios_etiquetado.md`, la definición con la que se etiquetó el dataset. Se copiaron de ahí desde la Parte 5; las reglas se incorporaron al prompt cuando ya se conocían los fallos de t022 y t033. Los ejemplos de las cuatro reglas son gemelos de casos del dataset: R1 con t022, R2 con t030, R3 con t032 y t033, y R4 con t037 y t038. Acertar t022 no prueba que el prompt generalice, y el 100 % del dataset no es una estimación fuera de muestra. El holdout de abajo la contrasta con tickets nuevos.
 - **Diferencia entre las reglas del prompt y los criterios.** Para una consulta que no encaja en ninguna regla, los criterios piden marcarla como ambigua y revisarla a mano. El prompt v3 pide elegir la categoría más cercana y bajar la confianza. El runner no mide esa diferencia, pero conviene saberla al leer la comparación.
 - **Un solo modelo** en la comparación de prompts. Gemini y dots se midieron con v3 en la comparativa de modelos.
-- **Detector de promesas.** Son patrones de expresiones regulares, probados offline con 22 casos positivos y 34 negativos. Falso positivo conocido: "te devolvemos la llamada". Falso negativo conocido: "a la brevedad" o "en breve", sin plazo concreto.
+- **Límite del prompt v3, que no se cambia.** La política dice "que te van a responder", que le habla al modelo y no al cliente. Dos ejemplos del propio prompt v3 contradicen su bloque de políticas: "Te enviamos el resumen de pagos por este mismo canal" y "Ya registramos el problema". Se documenta y no se cambia, porque cambiar el prompt invalidaría las evals ya corridas.
+- **El dataset detecta regresiones más que diferencias entre prompts.** v1 ya acierta entre 95,5 % y 97,7 %, y de los nueve casos difíciles, siete nunca fallaron. v1 y v3 dan 16 de 16 en el holdout. Ver [dataset.md](dataset.md).
+- **Detector de promesas.** Son reglas con listas nombradas en `src/policy.py`, probadas con 40 casos de promesas versionados en `evals/rule_cases.jsonl` (18 positivos y 22 negativos). "Te devolvemos la llamada" ya no es falso positivo: se corrigió en la etapa 8. Falsos negativos conocidos: "a la brevedad" o "en breve", sin plazo concreto, y "Te corresponde un reintegro del 20 %", una afirmación sin verbo de compromiso.
 
 ## Validación fuera de muestra (holdout)
 
-`evals/holdout.jsonl` tiene 16 tickets (ids `h001` a `h016`, 4 por categoría) que no se usaron para escribir los prompts. Los armó un subagente de IA sin leer `prompts/`, con los criterios de `evals/criterios_etiquetado.md`, y el orquestador los revisó. Ninguno repite el dataset: la similitud máxima con sus 44 casos es 0,436 (`difflib.SequenceMatcher`). Incluye siete casos difíciles con la regla de desempate en `notes`, dos fuera de dominio, uno en inglés y uno muy corto.
+`evals/holdout.jsonl` tiene 16 tickets (ids `h001` a `h016`, 4 por categoría) que no se usaron para escribir los prompts. Los armó un subagente de IA sin leer `prompts/`, con los criterios de `evals/criterios_etiquetado.md`, y el orquestador los revisó. Ninguno repite el dataset: la similitud máxima con sus 44 casos es 0,436 (`difflib.SequenceMatcher`). Cinco casos tienen una regla de desempate (1 a 4) en `notes`, dos se resuelven con una regla general, y hay dos fuera de dominio, uno en inglés y uno muy corto.
 
 | Métrica | v1 | v3 |
 |---|---|---|
@@ -204,7 +207,7 @@ Mismo prompt (v3), mismo dataset de 44 casos, guardrails activados y temperature
 | `gemini-3.5-flash-lite` | Gemini | 100 % (44/44) | 1,000 | 100 % | 1,18 s / 4,51 s | 2.183 | 0 USD | 0,000843 USD por ticket | 10,11 USD |
 | `dots-studio/dots-3-note-preview:free` | OpenRouter | 100 % (44/44) | 1,000 | 97,7 % (1 caso con reintento) | 11,03 s / 20,72 s | 3.166 | 0 USD | 0,000788 USD por ticket | 9,46 USD |
 
-Todas las F1 por categoría son 1,000. Las diferencias reales están en latencia, contrato y costo.
+Todas las F1 por categoría son 1,000. Las diferencias reales están en latencia, contrato y costo. La columna de JSON válido cuenta solo el primer intento: dots llegó a 44 de 44 válidos tras el reintento de t003.
 
 - **Dots tuvo un reintento de validación** (t003, una respuesta inválida que el reintento corrigió). Además escribió seis acciones con errores de tipeo fuera del catálogo: `gestionar_usuos_y_permisos` (4 casos), `actualizar_medio_de_pag` (1) y `actualizar_medio_de pago` (1). Esa corrida es anterior al guardrail `action_off_catalog`, que hoy descartaría esas acciones (ver [seguridad.md](seguridad.md)).
 - **Gemini** completó los 44 casos sin respaldos y sin respuestas inválidas. Tuvo dos reintentos de transporte recuperados (t030 y t037).
@@ -220,6 +223,7 @@ Todas las F1 por categoría son 1,000. Las diferencias reales están en latencia
 Condiciones y lo que no se sabe:
 
 - El nivel gratuito de Gemini no publica límites para este modelo. En producción hay que pagar, y el costo real sería el de lista.
+- Lo observado, verificado en `data/metrics.jsonl`: 48 solicitudes de triage a `gemini-3.5-flash-lite` el 08/11, que hicieron 50 llamadas HTTP. Son 2 de la CLI, 44 de la corrida del dataset y 2 registros anteriores a esa corrida, sin reporte guardado (las corridas con `--limit` no guardan reportes). La pausa del runner fue de 4,5 s. Ninguna solicitud agotó sus reintentos (`fallback` en 0) y dos casos reintentaron una vez (t030 y t037). Eso no fija el cupo del nivel gratuito.
 - Con 44 casos y un prompt diseñado sobre este dataset, la accuracy no discrimina. Antes de decidir por calidad hay que correr los tres modelos en el holdout. Hoy solo nemotron está corrido ahí.
 - Nemotron es la alternativa si el costo pesa más que la latencia: es el más barato a precio de lista, con 100 % de accuracy, pero su p95 es de 18,65 s.
 - Dots se descarta: es el más lento, el único que necesitó un reintento de validación y el que escribió acciones fuera del catálogo.
