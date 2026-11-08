@@ -1,6 +1,6 @@
 # Uso de IA en el proyecto
 
-La consigna pide documentar los prompts usados con IA y explicar cómo influyeron en las decisiones técnicas. Este documento resume, por etapa, el objetivo y las instrucciones clave de cada prompt, y qué decisiones influyó. El texto completo de las instrucciones de cada etapa no se versiona: quedó en las notas locales del proyecto.
+La consigna pide documentar los prompts usados con IA y explicar cómo influyeron en las decisiones técnicas. Este documento resume, por etapa, el objetivo y las instrucciones clave de cada prompt, y qué decisiones influyó. El texto completo de las instrucciones de cada etapa está en [docs/prompts/](prompts/README.md), con el modelo que ejecutó cada una.
 
 ## Herramientas
 
@@ -84,9 +84,15 @@ La consigna pide documentar los prompts usados con IA y explicar cómo influyero
 - **Objetivo del prompt:** README final de 350 a 450 líneas con el detalle en `docs/`, este documento, una ejecución limpia desde un clon y controles finales.
 - **Instrucciones clave:** cada número sale de `evals/results/` o de `data/metrics.jsonl`; sacar lo que ya está resuelto de "Pendiente"; ningún enlace interno roto; ninguna credencial en el repo ni en el historial.
 
+### Etapa 12: revisión final (12A y 12B)
+
+- **Objetivo del prompt:** la 12A corrige el código según las observaciones de cinco revisiones Opus. La 12B corrige la seguridad de autolesión, los tags del dataset, la documentación y las notas, y deja la explicación de la revisión.
+- **Instrucciones clave:** verificar la evidencia antes de cambiar nada; validar cada cambio de guardrails sin llamar a la API contra el dataset, el holdout y la suite adversarial; re-correr la suite adversarial real, y no el dataset si ninguna decisión cambia; cada número sale de `evals/results/`, `data/metrics.jsonl`, `config/models.yaml` o del reporte de la 12A; las únicas llamadas reales de la 12B son las tres del clon limpio.
+- **Decisiones que influyó:** el detector de promesas pasó a listas con nombre y casos versionados; los tags tienen definiciones con umbrales, y `frontera` reemplaza a `ambiguo`; la autolesión de terceros se detecta por verbos y no por el sustantivo; la documentación declara lo que la revisión no corrigió.
+
 ## Decisiones que salieron de experimentos guiados por IA
 
-1. **Proveedores.** No había API de OpenAI ni de Anthropic, solo suscripciones. Se eligieron OpenRouter (modelos gratuitos, con la cuenta en el nivel de 1.000 requests por día) y Gemini (nivel gratuito de AI Studio). OpenCode Go se descartó porque sus condiciones limitan el uso a agentes de código. Esta última razón está registrada en el plan del proyecto.
+1. **Proveedores.** No había API de OpenAI ni de Anthropic, solo suscripciones. Se eligieron OpenRouter (modelos gratuitos, con la cuenta en el nivel de 1.000 requests por día) y Gemini (nivel gratuito de AI Studio). OpenCode Go se descartó porque sus condiciones limitan el uso a agentes de código.
 2. **Modelos gratuitos que razonan.** Razonan entre 400 y 1.500 tokens antes de responder. Con `max_tokens` bajo, el JSON llegaba cortado, así que el default es 2000. Un modelo devolvió solo espacios en blanco y otro un JSON cortado: de ahí la validación con Pydantic y los reintentos.
 3. **`reasoning.effort=low`.** Se midió en la etapa 2 y no se adoptó: la diferencia de latencia quedó dentro del ruido y generó más tokens de salida.
 4. **Gemini 3.8 Flash contra 3.5 Flash-Lite.** El primero tardó 182 s en el nivel gratuito, en una prueba previa, y el segundo, 2 s. Flash-Lite quedó por defecto. Además prometió un reembolso: de ahí las políticas del prompt v3, la métrica de promesas y el guardrail de salida.
