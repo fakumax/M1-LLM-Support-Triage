@@ -561,6 +561,7 @@ SALIDA    src/guardrails.py  screen_output()
   |         12 palabras seguidas del system    -> BLOQUEA: contrato seguro
   |         promesa indebida (src/policy.py)   -> reemplaza answer, confidence <= 0.5, agrega derivar_a_agente_humano
   |         lenguaje ofensivo                  -> reemplaza answer
+  |         acción fuera del catálogo         -> la descarta (si no queda ninguna, derivar_a_agente_humano)
   v
 stdout: JSON   |   data/metrics.jsonl: "guardrail" con los códigos activados, o null
 ```
@@ -584,6 +585,7 @@ stdout: JSON   |   data/metrics.jsonl: "guardrail" con los códigos activados, o
 | Salida | `system_prompt_leak` | 12 palabras seguidas del system prompt | Bloquea (contrato seguro) | Detecta la copia literal aunque el canary no aparezca. El umbral supera la coincidencia más larga de las 176 respuestas guardadas (8 palabras en v1, 6 en v3). |
 | Salida | `promise` | reembolsos, descuentos o plazos prometidos (`src/policy.py`) | Reemplaza `answer` por una respuesta que dice que un agente lo revisa; `confidence` queda en 0,5 como máximo | Nubbix no promete esas decisiones. Se mantienen `category` y las acciones del modelo. |
 | Salida | `offensive_output` | insultos en `answer` | Reemplaza `answer` | El asistente no responde con insultos. |
+| Salida | `action_off_catalog` | acciones que no están en `ACTION_CATALOG` (`src/schema.py`), como `reembolsar_ya` o un typo | Descarta esas acciones; si no queda ninguna, `derivar_a_agente_humano` | El contrato acepta cualquier string; el catálogo se impone en la salida. |
 
 El contrato seguro es el mismo del respaldo: `category: other`, `confidence: 0`, `actions: ["derivar_a_agente_humano"]`.
 
