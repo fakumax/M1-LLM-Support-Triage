@@ -367,10 +367,11 @@ Desde la raíz del repo:
 | `--provider` | `openrouter` o `gemini` | `openrouter` |
 | `--model` | ID del modelo. Con OpenRouter tiene que terminar en `:free`; el runner lo verifica antes de llamar a la API | `default_model` del proveedor |
 | `--prompt` | Versión del prompt en `prompts/` | `v3` |
+| `--dataset RUTA` | Dataset JSONL a evaluar. Si no es el default, el nombre del reporte agrega el nombre del archivo (por ejemplo `_holdout`) | `evals/dataset.jsonl` |
 | `--limit N` | Evalúa solo los primeros N casos. No guarda reportes | todos los casos |
 | `--sleep S` | Segundos de pausa entre requests | `eval_sleep_s` de `config/models.yaml`: 3,2 s en OpenRouter (20 requests por minuto como máximo) y 4,5 s en Gemini |
 
-El progreso de cada caso va a stderr y el reporte en Markdown va a stdout. Una corrida completa guarda dos archivos en `evals/results/`: `<AAAAmmdd-HHMM>_<proveedor>_<modelo>_<prompt>.json`, con las métricas y el detalle de cada caso, y un `.md` con las mismas tablas. Salida real de la línea base (fragmento de stderr):
+El progreso de cada caso va a stderr y el reporte en Markdown va a stdout. Una corrida completa guarda dos archivos en `evals/results/`: `<AAAAmmdd-HHMM>_<proveedor>_<modelo>_<prompt>[_<dataset>].json`, con las métricas y el detalle de cada caso, y un `.md` con las mismas tablas. Salida real de la línea base (fragmento de stderr):
 
 ```text
 [01/44] t001 esperada=billing predicha=billing ok 14.0 s
@@ -486,12 +487,41 @@ Resultados de cada corrida completa (los reportes están en `evals/results/`: v1
 
 **Limitaciones.**
 
-- **Circularidad.** Las reglas de v3 salen de `evals/criterios_etiquetado.md`, que es la definición con la que se etiquetó el dataset, y se escribieron después de ver los dos fallos del v1 (t022 y t033). Por eso el 100 % de v3 no es una estimación fuera de muestra. Validarlo exige tickets nuevos, etiquetados sin mirar el prompt.
+- **Circularidad.** Las reglas de v3 salen de `evals/criterios_etiquetado.md`, que es la definición con la que se etiquetó el dataset, y se escribieron después de ver los dos fallos del v1 (t022 y t033). Por eso el 100 % del dataset no es una estimación fuera de muestra. La sección siguiente la contrasta con tickets nuevos: v3 también acierta todo, pero el holdout usa los mismos criterios, así que no es una prueba independiente de ellos.
 - **Ruido con dos corridas por versión.** Un caso equivale a 2,3 puntos de accuracy, así que la comparación tiene poca resolución.
 - **Un solo modelo.** Gemini no se evaluó: la documentación de AI Studio no publica límites gratuitos para `gemini-3.5-flash-lite` (aparece solo en tablas de pago), y la especificación pide verificarlos antes de correr evals.
 - **Detector de promesas (`src/policy.py`).** Son patrones de expresiones regulares, probados offline con 22 casos positivos y 34 negativos. Falso positivo conocido: "te devolvemos la llamada", donde devolver no es un reintegro. Falso negativo conocido: promesas vagas como "a la brevedad" o "en breve", que no tienen un plazo concreto.
 
-Para reproducir cada versión, desde la raíz del repo en PowerShell:
+### Validación fuera de muestra (holdout)
+
+`evals/holdout.jsonl` tiene 16 tickets que no se usaron para escribir los prompts (ids `h001` a `h016`, 4 por categoría). Los armó un subagente sin leer `prompts/`, con los criterios de `evals/criterios_etiquetado.md`, y el orquestador los revisó. Incluye 7 casos difíciles con la regla de desempate en `notes`, uno fuera de dominio, uno en inglés y uno muy corto. Ningún ticket repite el dataset: la similitud máxima con sus 44 casos es 0,436 (`difflib.SequenceMatcher`).
+
+Resultados de una corrida por versión, con el modelo por defecto, temperature 0 y guardrails activados:
+
+| Métrica | v1 | v3 |
+|---|---|---|
+| Accuracy | 100 % (16 de 16) | 100 % (16 de 16) |
+| Macro-F1 | 1,000 | 1,000 |
+| Respaldos / promesas indebidas | 0 / 0 % | 0 / 0 % |
+| Tokens por ticket (entrada + salida) | 1.414 | 2.738 |
+| Costo por ticket a precio de lista | 0,000465 USD | 0,000573 USD |
+| Latencia p50 / p95 | 5,85 s / 10,70 s | 4,82 s / 9,59 s |
+
+Qué significa:
+
+- **v3 no pierde accuracy con tickets nuevos.** Acierta los 16, igual que v1. Eso es lo que se quería comprobar: sus reglas no empeoran la clasificación de tickets que no se usaron para escribirlas.
+- **El holdout no muestra que v3 sea mejor.** v1 también acierta todo, y con 16 casos un caso equivale a 6,25 puntos. Por eso no decide entre las dos versiones: la elección de la Parte 7 sigue apoyada en t022, que está dentro del dataset.
+- **Limitación compartida.** El holdout usa los mismos criterios de etiquetado que v3. Mide si las reglas se aplican bien a tickets nuevos, no si los criterios son los correctos, y las etiquetas no tuvieron una segunda revisión independiente.
+- **Lo que cuesta v3.** Casi el doble de tokens por ticket y un 23 % más a precio de lista, porque el system prompt y los ejemplos viajan en cada request. A 400 tickets por día, la diferencia a precio de lista es de unos 0,04 USD por día.
+
+Reportes: `evals/results/20261108-1550_openrouter_nvidia-nemotron-3-5-super-vl-free_v1_holdout.md` y `evals/results/20261108-1552_openrouter_nvidia-nemotron-3-5-super-vl-free_v3_holdout.md`. Para reproducirlos, desde la raíz del repo en PowerShell:
+
+```powershell
+.venv\Scripts\python.exe -m evals.runner --prompt v1 --dataset evals/holdout.jsonl
+.venv\Scripts\python.exe -m evals.runner --prompt v3 --dataset evals/holdout.jsonl
+```
+
+Para reproducir cada versión sobre el dataset, desde la raíz del repo en PowerShell:
 
 ```powershell
 .venv\Scripts\python.exe -m evals.runner --prompt v1
@@ -674,8 +704,8 @@ stderr: avisos; "Error: ..." y código de salida 1 si algo impide responder
 
 ## Pendiente
 
-- Validar v3 con tickets nuevos: sus reglas se escribieron después de ver los fallos del v1 en este mismo dataset (ver context engineering).
+- Validar v3 con más tickets nuevos: en el holdout de 16 casos, v1 y v3 aciertan todo, así que falta una muestra más grande donde las dos versiones se separen (ver context engineering).
 - Las fechas de los reportes están en hora local, sin zona horaria.
-- Segunda revisión independiente de las etiquetas del dataset.
+- Segunda revisión independiente de las etiquetas del dataset y del holdout.
 - Evaluar con Gemini: la documentación de AI Studio no publica límites gratuitos para `gemini-3.5-flash-lite`, así que la comparativa se corrió solo con OpenRouter.
 - Registrar los tokens de intentos previos cuando un intento posterior falla con un error que no es transitorio.
