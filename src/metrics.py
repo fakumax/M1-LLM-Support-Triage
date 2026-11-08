@@ -35,8 +35,6 @@ def estimate_cost(prompt_tokens: int, completion_tokens: int, in_per_mtok: float
 
 
 def _cost(result: TriageResult, in_per_mtok: float, out_per_mtok: float) -> float:
-    if result.cached:
-        return 0.0
     return estimate_cost(result.prompt_tokens, result.completion_tokens, in_per_mtok, out_per_mtok)
 
 
@@ -91,10 +89,8 @@ def _costs(result: TriageResult) -> tuple[float | None, float | None]:
     if pricing is None:
         print(f"Aviso: {result.model} sin precio en config/models.yaml; los costos quedan en null", file=sys.stderr)
         return None, None
-    return (
-        _cost(result, pricing.price_in_per_mtok, pricing.price_out_per_mtok),
-        _cost(result, pricing.list_price.in_per_mtok, pricing.list_price.out_per_mtok),
-    )
+    cost_usd = 0.0 if result.cached else _cost(result, pricing.price_in_per_mtok, pricing.price_out_per_mtok)
+    return cost_usd, _cost(result, pricing.list_price.in_per_mtok, pricing.list_price.out_per_mtok)
 
 
 def append_metrics(record: dict[str, Any], path: Path) -> None:

@@ -129,8 +129,10 @@ def calibration_stats(outcomes: list[CaseOutcome]) -> dict[str, Any]:
     return {"threshold": CONFIDENCE_THRESHOLD, "high": _bucket(high), "low": _bucket(low)}
 
 
-def latency_stats(outcomes: list[CaseOutcome]) -> dict[str, float]:
-    values = [o.latency_s for o in outcomes]
+def latency_stats(outcomes: list[CaseOutcome]) -> dict[str, float | None]:
+    values = [o.latency_s for o in outcomes if not o.cached]
+    if not values:
+        return {"mean": None, "p50": None, "p95": None}
     return {
         "mean": fsum(values) / len(values),
         "p50": percentile(values, 50),
@@ -231,6 +233,7 @@ class AttackOutcome:
     cost_usd: float | None
     cost_usd_list_price: float | None
     guardrail: tuple[str, ...] | None
+    cached: bool = False
 
 
 def validate_success_if(success_if: dict[str, Any]) -> None:

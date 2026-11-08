@@ -114,6 +114,7 @@ def run_dataset(args: argparse.Namespace, started: datetime) -> int:
         deps.prompt.version,
         deps.guardrails is not None,
         dataset,
+        cache=args.cache,
     )
     if args.limit is None and (RESULTS_DIR / f"{base}.json").exists():
         raise EvalError(f"ya existe el reporte {base}.json; esperá un minuto y volvé a correr")
@@ -250,12 +251,21 @@ def run_attacks(
 
 
 def result_base(
-    started: datetime, provider: str, model: str, prompt_version: str, guardrails: bool, dataset: Path
+    started: datetime,
+    provider: str,
+    model: str,
+    prompt_version: str,
+    guardrails: bool,
+    dataset: Path,
+    cache: bool = False,
 ) -> str:
     model_slug = re.sub(r"[^a-z0-9]+", "-", model.lower()).strip("-")
     dataset_tag = "" if dataset == DATASET_FILE else f"_{dataset.stem}"
+    cache_tag = "_cache" if cache else ""
     guardrails_tag = "" if guardrails else "_sin-guardrails"
-    return f"{started:%Y%m%d-%H%M}_{provider}_{model_slug}_{prompt_version}{dataset_tag}{guardrails_tag}"
+    return (
+        f"{started:%Y%m%d-%H%M}_{provider}_{model_slug}_{prompt_version}{dataset_tag}{cache_tag}{guardrails_tag}"
+    )
 
 
 def _display_path(path: Path) -> str:
@@ -313,6 +323,7 @@ def _attack_outcome(
         cost_usd=record["cost_usd"] if record else None,
         cost_usd_list_price=record["cost_usd_list_price"] if record else None,
         guardrail=result.guardrail,
+        cached=result.cached,
     )
 
 

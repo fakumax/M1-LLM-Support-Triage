@@ -54,7 +54,8 @@ class CachedProvider(LLMProvider):
         if hit is not None:
             return hit
         response = self._inner.complete(system, messages, json_schema)
-        _store(path, response)
+        if response.text.strip():
+            _store(path, response)
         return response
 
 
@@ -63,7 +64,9 @@ def _load(path: Path, provider: str, model: str) -> LLMResponse | None:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
         text, prompt_tokens, completion_tokens = data["text"], data["prompt_tokens"], data["completion_tokens"]
-    except (OSError, ValueError, KeyError, TypeError):
+        if not text.strip():
+            return None
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
         return None
     return LLMResponse(
         text=text,
@@ -72,7 +75,7 @@ def _load(path: Path, provider: str, model: str) -> LLMResponse | None:
         latency_s=round(time.perf_counter() - started, 3),
         provider=provider,
         model=model,
-        reported_cost_usd=0.0,
+        reported_cost_usd=data.get("reported_cost_usd"),
         attempts=0,
         cached=True,
     )
@@ -83,6 +86,7 @@ def _store(path: Path, response: LLMResponse) -> None:
         "text": response.text,
         "prompt_tokens": response.prompt_tokens,
         "completion_tokens": response.completion_tokens,
+        "reported_cost_usd": response.reported_cost_usd,
     }
     try:
         path.parent.mkdir(parents=True, exist_ok=True)

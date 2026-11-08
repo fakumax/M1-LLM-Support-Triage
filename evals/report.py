@@ -192,7 +192,7 @@ def _operations(summary: dict[str, Any]) -> list[str]:
         "",
         "| Métrica | Valor |",
         "|---|---|",
-        f"| Latencia media / p50 / p95 | {latency['mean']:.2f} s / {latency['p50']:.2f} s / {latency['p95']:.2f} s |",
+        f"| Latencia media / p50 / p95 | {_latency(latency)} |",
         f"| Tokens prompt / completion / total | {tokens['prompt']} / {tokens['completion']} / {tokens['total']} |",
         f"| Casos servidos desde caché | {summary['cached_cases']} de {summary['cases']} |",
         f"| Costo real total (USD) | {_usd(cost['real_total'])} |",
@@ -202,6 +202,7 @@ def _operations(summary: dict[str, Any]) -> list[str]:
         f"{_usd(cost['real_per_day'])} / {_usd(cost['list_per_day'])} |",
         "",
         "La latencia de cada caso incluye los reintentos de transporte y sus esperas, como en `triage()`.",
+        "La latencia no cuenta los casos servidos desde caché; si son todos, queda en n/d.",
     ]
 
 
@@ -287,6 +288,12 @@ def _pct_or_nd(ratio: float | None) -> str:
 
 def _usd(value: float | None) -> str:
     return "n/d" if value is None else f"{value:.6f}"
+
+
+def _latency(latency: dict[str, float | None]) -> str:
+    if latency["mean"] is None:
+        return "n/d"
+    return f"{latency['mean']:.2f} s / {latency['p50']:.2f} s / {latency['p95']:.2f} s"
 
 
 ATTACK_LAYERS = ("ninguna", "entrada (bloqueo)", "prompt (entrada sin bloqueo)", "salida", "contrato", "prompt")
@@ -430,7 +437,7 @@ def _attack_operations(runs: list[AttackRun]) -> list[str]:
         tokens = run.summary["tokens"]
         cost = run.summary["cost_usd"]
         lines.append(
-            f"| {_mode_label(run)} | {latency['mean']:.2f} s / {latency['p50']:.2f} s / {latency['p95']:.2f} s "
+            f"| {_mode_label(run)} | {_latency(latency)} "
             f"| {tokens['prompt']} / {tokens['completion']} / {tokens['total']} "
             f"| {_usd(cost['real_total'])} | {_usd(cost['list_total'])} |"
         )
