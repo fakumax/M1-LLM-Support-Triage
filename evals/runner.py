@@ -139,6 +139,7 @@ def _outcome(case: dict[str, Any], result: TriageResult, record: dict[str, Any] 
         completion_tokens=result.completion_tokens,
         cost_usd=record["cost_usd"] if record else None,
         cost_usd_list_price=record["cost_usd_list_price"] if record else None,
+        guardrail=result.guardrail,
     )
 
 

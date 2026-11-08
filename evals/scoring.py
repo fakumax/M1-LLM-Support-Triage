@@ -27,6 +27,7 @@ class CaseOutcome:
     completion_tokens: int
     cost_usd: float | None
     cost_usd_list_price: float | None
+    guardrail: tuple[str, ...] | None = None
 
     @property
     def correct(self) -> bool:
@@ -60,6 +61,7 @@ def summarize(outcomes: list[CaseOutcome]) -> dict[str, Any]:
         "tokens": token_stats(outcomes),
         "cost_usd": cost_stats(outcomes),
         "promises": promise_stats(outcomes),
+        "guardrails": guardrail_stats(outcomes),
         "fallback_ids": [outcome.id for outcome in outcomes if outcome.fallback],
         "failed_ids": [outcome.id for outcome in outcomes if not outcome.correct],
     }
@@ -156,6 +158,18 @@ def promise_stats(outcomes: list[CaseOutcome]) -> dict[str, Any]:
         "cases": len(flagged),
         "share": _ratio(len(flagged), len(outcomes)),
         "ids": [outcome.id for outcome in flagged],
+    }
+
+
+def guardrail_stats(outcomes: list[CaseOutcome]) -> dict[str, Any]:
+    by_rule: dict[str, list[str]] = {}
+    for outcome in outcomes:
+        for code in outcome.guardrail or ():
+            by_rule.setdefault(code, []).append(outcome.id)
+    return {
+        "cases": sum(1 for outcome in outcomes if outcome.guardrail),
+        "by_rule": by_rule,
+        "fallback_with_guardrail_ids": [o.id for o in outcomes if o.fallback and o.guardrail],
     }
 
 

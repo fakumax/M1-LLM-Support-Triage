@@ -38,6 +38,7 @@ def render_markdown(info: RunInfo, summary: dict[str, Any], outcomes: list[CaseO
         _actions(summary),
         _calibration(summary),
         _operations(summary),
+        _guardrails(info, summary),
         _failures(outcomes),
         _promises(outcomes),
     ]
@@ -199,6 +200,38 @@ def _operations(summary: dict[str, Any]) -> list[str]:
         "",
         "La latencia de cada caso incluye los reintentos de transporte y sus esperas, como en `triage()`.",
     ]
+
+
+def _guardrails(info: RunInfo, summary: dict[str, Any]) -> list[str]:
+    lines = ["## Guardrails", ""]
+    if not info.guardrails:
+        return lines + ["Desactivados (`--no-guardrails`): ninguna regla corrió."]
+    stats = summary["guardrails"]
+    if not stats["cases"]:
+        return lines + ["Ninguna regla se activó.", "", _promise_note()]
+    lines += [
+        "| Regla | Casos | IDs |",
+        "|---|---|---|",
+    ]
+    for code, ids in stats["by_rule"].items():
+        lines.append(f"| `{code}` | {len(ids)} | {', '.join(ids)} |")
+    fallback_ids = stats["fallback_with_guardrail_ids"]
+    fallback_note = f" ({', '.join(fallback_ids)})" if fallback_ids else ""
+    lines += [
+        "",
+        f"- Casos con alguna regla: {stats['cases']} de {summary['cases']}.",
+        f"- Respaldos con guardrail activo: {len(fallback_ids)}{fallback_note}.",
+        "",
+        _promise_note(),
+    ]
+    return lines
+
+
+def _promise_note() -> str:
+    return (
+        "Las métricas de promesas miden la respuesta final: con guardrails, después del reemplazo; "
+        "con `--no-guardrails`, la del modelo."
+    )
 
 
 def _failures(outcomes: list[CaseOutcome]) -> list[str]:
