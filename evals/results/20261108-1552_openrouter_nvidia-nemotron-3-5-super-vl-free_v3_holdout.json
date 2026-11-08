@@ -1,0 +1,508 @@
+{
+  "run": {
+    "timestamp": "2026-11-08T15:52:41",
+    "provider": "openrouter",
+    "model": "nvidia/nemotron-3.5-super-vl:free",
+    "prompt_version": "v3",
+    "dataset": "evals/holdout.jsonl",
+    "sleep_s": 3.2,
+    "guardrails": true
+  },
+  "summary": {
+    "cases": 16,
+    "correct": 16,
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "per_category": {
+      "billing": {
+        "true_positive": 4,
+        "predicted": 4,
+        "support": 4,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "technical": {
+        "true_positive": 4,
+        "predicted": 4,
+        "support": 4,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "account": {
+        "true_positive": 4,
+        "predicted": 4,
+        "support": 4,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "other": {
+        "true_positive": 4,
+        "predicted": 4,
+        "support": 4,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      }
+    },
+    "confusion": {
+      "billing": {
+        "billing": 4,
+        "technical": 0,
+        "account": 0,
+        "other": 0
+      },
+      "technical": {
+        "billing": 0,
+        "technical": 4,
+        "account": 0,
+        "other": 0
+      },
+      "account": {
+        "billing": 0,
+        "technical": 0,
+        "account": 4,
+        "other": 0
+      },
+      "other": {
+        "billing": 0,
+        "technical": 0,
+        "account": 0,
+        "other": 4
+      }
+    },
+    "contract": {
+      "valid_first_try": 16,
+      "valid_after_retry": 0,
+      "fallback": 0
+    },
+    "catalog": {
+      "answered_cases": 16,
+      "actions": 23,
+      "in_catalog": 23,
+      "outside_catalog": {},
+      "cases_with_outside": []
+    },
+    "calibration": {
+      "threshold": 0.8,
+      "high": {
+        "cases": 15,
+        "accuracy": 1.0
+      },
+      "low": {
+        "cases": 1,
+        "accuracy": 1.0
+      }
+    },
+    "latency_s": {
+      "mean": 5.2291875,
+      "p50": 4.816,
+      "p95": 9.592
+    },
+    "tokens": {
+      "prompt": 36389,
+      "completion": 7412,
+      "total": 43801
+    },
+    "cost_usd": {
+      "real_total": 0.0,
+      "list_total": 0.00916435,
+      "real_per_ticket": 0.0,
+      "list_per_ticket": 0.00057277,
+      "tickets_per_day": 400,
+      "real_per_day": 0.0,
+      "list_per_day": 0.22910875
+    },
+    "promises": {
+      "cases": 0,
+      "share": 0.0,
+      "ids": []
+    },
+    "guardrails": {
+      "cases": 0,
+      "by_rule": {},
+      "fallback_with_guardrail_ids": []
+    },
+    "fallback_ids": [],
+    "failed_ids": []
+  },
+  "cases": [
+    {
+      "id": "h001",
+      "query": "Buenas. En la feria de Asunción me dieron un cupón del 15% de descuento para el primer año y lo canjeé al contratar. En la factura de octubre no se aplicó y me cobraron el precio completo. ¿Me lo corrigen?",
+      "answer": "Entendemos que el descuento del cupón no se reflejó en la factura de octubre. Vamos a revisar el cobro y el cupón que canjearte, y te respondemos por este canal.",
+      "expected": "billing",
+      "predicted": "billing",
+      "confidence": 0.9,
+      "actions": [
+        "explicar_cargos"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 3.884,
+      "prompt_tokens": 2296,
+      "completion_tokens": 517,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0006029,
+      "guardrail": null,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "h002",
+      "query": "Ya no usamos Nubbix desde septiembre, pero el débito automático de noviembre se cobró igual. Quiero que nos devuelvan ese cobro.",
+      "answer": "Entendemos la situación. Vamos a revisar el débito de noviembre en tu cuenta y te respondemos por este canal con lo que encontremos.",
+      "expected": "billing",
+      "predicted": "billing",
+      "confidence": 0.9,
+      "actions": [
+        "verificar_cobro_duplicado"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 6.104,
+      "prompt_tokens": 2271,
+      "completion_tokens": 918,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00079965,
+      "guardrail": null,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "h003",
+      "query": "Cerramos la sucursal de Quetzaltenango en agosto, pero en la factura de octubre seguimos pagando la licencia de esa sucursal. Por favor quítenla y devuélvanos lo cobrado de más.",
+      "answer": "Entendemos el cobro de la sucursal de Quetzaltenango. Vamos a revisar la factura de octubre y el estado de esa licencia; un agente de soporte te responderá por este canal sobre el cargo y lo que corresponda.",
+      "expected": "billing",
+      "predicted": "billing",
+      "confidence": 0.85,
+      "actions": [
+        "explicar_cargos",
+        "gestionar_reintegro"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 7.139,
+      "prompt_tokens": 2288,
+      "completion_tokens": 900,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0007932,
+      "guardrail": null,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "h004",
+      "query": "La factura de Nubbix de octubre trae IVA del 21%, pero para una empresa en Ecuador corresponde el 15%. Nos afecta la declaración, ¿pueden emitirla de nuevo con la tasa correcta?",
+      "answer": "Entendemos que la factura de octubre tiene una tasa de IVA que no corresponde a Ecuador. Un agente de soporte revisa el caso y te responde por este canal.",
+      "expected": "billing",
+      "predicted": "billing",
+      "confidence": 0.85,
+      "actions": [
+        "reenviar_factura"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 3.903,
+      "prompt_tokens": 2287,
+      "completion_tokens": 583,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00063455,
+      "guardrail": null,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "h005",
+      "query": "stock en negativo",
+      "answer": "Entendido. Para revisar el stock en negativo, necesitamos más detalles: ¿en qué módulo lo viste y de qué producto se trata? Si puedes, envíanos una captura de pantalla. Un agente de soporte lo revisa y te responde por este canal.",
+      "expected": "technical",
+      "predicted": "technical",
+      "confidence": 0.75,
+      "actions": [
+        "revisar_logs_del_error",
+        "solicitar_capturas_o_pasos"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 5.291,
+      "prompt_tokens": 2240,
+      "completion_tokens": 380,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.000526,
+      "guardrail": null,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "h006",
+      "query": "Desde ayer los webhooks de pedidos no llegan a nuestro ERP. En el panel de la API figuran como enviados con código 200, pero del lado nuestro no entra nada.",
+      "answer": "Gracias por el detalle. Vamos a revisar el estado de los webhooks y la integración con tu ERP; si puedes, envíanos capturas o los pasos que seguís para probarlo.",
+      "expected": "technical",
+      "predicted": "technical",
+      "confidence": 0.9,
+      "actions": [
+        "verificar_estado_de_integracion",
+        "solicitar_capturas_o_pasos"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 4.565,
+      "prompt_tokens": 2276,
+      "completion_tokens": 611,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0006469,
+      "guardrail": null,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "h007",
+      "query": "Los recordatorios de facturas vencidas por WhatsApp no salen desde el lunes. Tenemos la opción activada en configuración y el número del cliente bien cargado.",
+      "answer": "Lamentamos que los recordatorios no estén saliendo. Vamos a revisar la configuración y los logs de envío; ¿nos mandas una captura de la pantalla de configuración y un ejemplo de un cliente al que no le llegó el recordatorio?",
+      "expected": "technical",
+      "predicted": "technical",
+      "confidence": 0.9,
+      "actions": [
+        "revisar_logs_del_error",
+        "solicitar_capturas_o_pasos"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 4.816,
+      "prompt_tokens": 2273,
+      "completion_tokens": 485,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00058345,
+      "guardrail": null,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "h008",
+      "query": "Sugerencia: el filtro por sucursal del reporte de compras no funciona, siempre muestra todas las sucursales mezcladas. Debería poder separarlas.",
+      "answer": "Gracias por la sugerencia. Vamos a revisar el filtro por sucursal en el reporte de compras; si puedes, envíanos una captura de pantalla y los pasos que seguiste para reproducirlo.",
+      "expected": "technical",
+      "predicted": "technical",
+      "confidence": 0.85,
+      "actions": [
+        "revisar_logs_del_error",
+        "solicitar_capturas_o_pasos"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 2.93,
+      "prompt_tokens": 2274,
+      "completion_tokens": 241,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0004616,
+      "guardrail": null,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "h009",
+      "query": "¿Cómo le doy al rol 'vendedor' acceso al módulo de presupuestos? Creé el rol y no encuentro dónde se asigna ese permiso.",
+      "answer": "Te ayudamos con eso. Un agente de soporte revisa los permisos del rol 'vendedor' y te responde por este canal cómo asignar el acceso al módulo de presupuestos.",
+      "expected": "account",
+      "predicted": "account",
+      "confidence": 0.9,
+      "actions": [
+        "gestionar_usuarios_y_permisos"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 2.279,
+      "prompt_tokens": 2270,
+      "completion_tokens": 224,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0004525,
+      "guardrail": null,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "h010",
+      "query": "Hace una semana no me llegan los avisos de vencimiento. Revisé y salen al correo del titular de la cuenta, que ya no trabaja en la empresa. ¿Pueden cambiarlo al mío?",
+      "answer": "Entendemos la situación. Para cambiar el correo del titular, primero necesitamos verificar la identidad de la cuenta y luego actualizamos el dato. Te respondemos por este canal una vez que el agente revise el caso.",
+      "expected": "account",
+      "predicted": "account",
+      "confidence": 0.9,
+      "actions": [
+        "verificar_identidad_del_titular",
+        "actualizar_datos_de_la_cuenta"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 2.701,
+      "prompt_tokens": 2280,
+      "completion_tokens": 294,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.000489,
+      "guardrail": null,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "h011",
+      "query": "Puse mal la contraseña tres veces y ahora me dice que el usuario está bloqueado. ¿Cómo lo desbloqueo? Estoy en la caja y tengo clientes esperando.",
+      "answer": "Entendemos la urgencia. Vamos a revisar el bloqueo de tu usuario y te respondemos por este canal para que puedas seguir operando en la caja.",
+      "expected": "account",
+      "predicted": "account",
+      "confidence": 0.92,
+      "actions": [
+        "restablecer_acceso"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 8.568,
+      "prompt_tokens": 2275,
+      "completion_tokens": 379,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00053075,
+      "guardrail": null,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "h012",
+      "query": "Our accountant left the company this week. Please remove her user from our Nubbix account and make me the account owner.",
+      "answer": "Entendido. Para quitar a esa usuaria y cambiar la titularidad de la cuenta, necesitamos verificar tu identidad como titular. Un agente de soporte revisará el caso y te responderá por este canal.",
+      "expected": "account",
+      "predicted": "account",
+      "confidence": 0.88,
+      "actions": [
+        "gestionar_usuarios_y_permisos",
+        "verificar_identidad_del_titular"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 9.592,
+      "prompt_tokens": 2263,
+      "completion_tokens": 532,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00060545,
+      "guardrail": null,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "h013",
+      "query": "¿Me recomiendan un contador en Quito que sepa de declaraciones de renta para una sociedad? No necesito el sistema, solo un nombre.",
+      "answer": "Gracias por escribirnos. No podemos recomendar contadores externos, pero un agente de soporte puede revisar tu caso y responderte por este canal.",
+      "expected": "other",
+      "predicted": "other",
+      "confidence": 0.95,
+      "actions": [
+        "derivar_a_agente_humano"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 2.209,
+      "prompt_tokens": 2268,
+      "completion_tokens": 284,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0004822,
+      "guardrail": null,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "h014",
+      "query": "Tenemos el plan Básico y queremos pasar al Pro para usar la API con nuestro ERP. ¿Cuánto nos saldría por mes el Pro y cuánto pagaríamos de diferencia este mes?",
+      "answer": "Gracias por la consulta. El equipo comercial te va a responder con el precio del plan Pro y cómo se calcula la diferencia de este mes.",
+      "expected": "other",
+      "predicted": "other",
+      "confidence": 0.95,
+      "actions": [
+        "derivar_a_ventas"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 9.082,
+      "prompt_tokens": 2279,
+      "completion_tokens": 143,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00041335,
+      "guardrail": null,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "h015",
+      "query": "Ojalá la caja pudiera seguir vendiendo sin internet y sincronizar después. Se nos corta la conexión casi todas las tardes y sería un gran avance para nosotros.",
+      "answer": "Gracias por la sugerencia. La anotamos como idea para mejorar Nubbix; si quieres, cuéntanos qué tipo de tienda tenés para entender mejor tu caso.",
+      "expected": "other",
+      "predicted": "other",
+      "confidence": 0.9,
+      "actions": [
+        "solicitar_mas_informacion"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 5.498,
+      "prompt_tokens": 2271,
+      "completion_tokens": 562,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00062165,
+      "guardrail": null,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "h016",
+      "query": "Hola buenas, ¿me pueden decir si ya salió el envío de mi pedido de cafetera? Es de una tienda de electrodomésticos, el número termina en 4471.",
+      "answer": "Hola. Nubbix es un software de gestión para pymes y no manejamos envíos de productos de tiendas de electrodomésticos. Te recomendamos contactar directamente con la tienda donde compraste la cafetera.",
+      "expected": "other",
+      "predicted": "other",
+      "confidence": 0.95,
+      "actions": [
+        "derivar_a_agente_humano"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 5.106,
+      "prompt_tokens": 2278,
+      "completion_tokens": 359,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0005212,
+      "guardrail": null,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    }
+  ]
+}
