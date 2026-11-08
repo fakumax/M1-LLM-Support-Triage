@@ -60,11 +60,15 @@ def triage(
             return _result(fallback_response(), provider, _Usage(), started, fallback=True, rules=screen.rules)
         text, rules = screen.text, screen.rules
     system, messages = build_messages(prompt, text)
+    sent_system = system if guardrails is None else guardrails.protect_system(system)
     usage = _Usage()
-    response = _ask_model(provider, system, messages, max_parse_retries, usage)
+    response = _ask_model(provider, sent_system, messages, max_parse_retries, usage)
     if response is None:
         return _result(fallback_response(), provider, usage, started, fallback=True, rules=rules)
-    return _result(response, provider, usage, started, fallback=False, rules=rules)
+    if guardrails is None:
+        return _result(response, provider, usage, started, fallback=False, rules=rules)
+    screen = guardrails.screen_output(response, system)
+    return _result(screen.response, provider, usage, started, fallback=screen.blocked, rules=rules + screen.rules)
 
 
 def _ask_model(

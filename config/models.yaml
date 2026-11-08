@@ -9,6 +9,7 @@ defaults:
   max_parse_retries: 2
 
 guardrails:
+  canary: nbx-canary-65715a96092857fd
   max_query_chars: 4000
 
 providers:

@@ -25,7 +25,10 @@ def build_triage_deps(provider_name: str, model: str | None, prompt_version: str
         provider=get_provider(provider_name, model),
         prompt=load_prompt(prompt_version),
         max_parse_retries=config["defaults"]["max_parse_retries"],
-        guardrails=Guardrails(max_query_chars=config["guardrails"]["max_query_chars"]),
+        guardrails=Guardrails(
+            canary=config["guardrails"]["canary"],
+            max_query_chars=config["guardrails"]["max_query_chars"],
+        ),
     )
 
 
