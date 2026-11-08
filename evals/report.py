@@ -37,7 +37,7 @@ def render_markdown(info: RunInfo, summary: dict[str, Any], outcomes: list[CaseO
         _per_category(summary),
         _confusion(summary),
         _contract(summary),
-        _actions(summary),
+        _actions(info, summary),
         _calibration(summary),
         _operations(summary),
         _guardrails(info, summary),
@@ -192,7 +192,7 @@ def _contract(summary: dict[str, Any]) -> list[str]:
     ]
 
 
-def _actions(summary: dict[str, Any]) -> list[str]:
+def _actions(info: RunInfo, summary: dict[str, Any]) -> list[str]:
     catalog = summary["catalog"]
     lines = [
         "## Acciones",
@@ -208,7 +208,16 @@ def _actions(summary: dict[str, Any]) -> list[str]:
         lines.append(f"- Casos con acciones fuera del catálogo: {', '.join(catalog['cases_with_outside'])}.")
     else:
         lines.append("- Fuera del catálogo: ninguna.")
-    return lines
+    return [*lines, "", _action_note(info)]
+
+
+def _action_note(info: RunInfo) -> str:
+    if info.guardrails:
+        return (
+            "Las acciones se miden en la respuesta final: con guardrails, las que están fuera del catálogo "
+            "se descartan antes de medir, así que ese conteo queda en 0; con `--no-guardrails`, las del modelo."
+        )
+    return "Sin guardrails, las acciones se miden tal como las devuelve el modelo."
 
 
 def _calibration(summary: dict[str, Any]) -> list[str]:
