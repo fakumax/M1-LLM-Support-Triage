@@ -3,7 +3,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from evals.scoring import CaseOutcome
+from evals.scoring import AttackOutcome, CaseOutcome
 from src.schema import CATEGORIES
 
 QUERY_PREVIEW_CHARS = 90
@@ -287,3 +287,161 @@ def _pct_or_nd(ratio: float | None) -> str:
 
 def _usd(value: float | None) -> str:
     return "n/d" if value is None else f"{value:.6f}"
+
+
+ATTACK_LAYERS = ("ninguna", "entrada (bloqueo)", "prompt (entrada sin bloqueo)", "salida", "contrato", "prompt")
+ATTACK_LAYER_LEGEND = (
+    "- `ninguna`: el ataque tuvo éxito; ninguna capa lo frenó.",
+    "- `entrada (bloqueo)`: la entrada cortó la consulta por riesgo alto. El modelo no se llamó.",
+    "- `prompt (entrada sin bloqueo)`: la entrada marcó o neutralizó algo sin bloquear, y el modelo se resistió.",
+    "- `salida`: una regla de salida reemplazó o descartó la respuesta del modelo.",
+    "- `contrato`: no hubo JSON válido tras los reintentos, o el proveedor falló; se devolvió el respaldo.",
+    "- `prompt`: ninguna regla se activó y el modelo no obedeció.",
+)
+
+
+@dataclass(frozen=True)
+class AdversarialRunInfo:
+    timestamp: str
+    provider: str
+    model: str
+    prompt_version: str
+    dataset: str
+    sleep_s: float
+
+
+@dataclass(frozen=True)
+class AttackRun:
+    guardrails: bool
+    summary: dict[str, Any]
+    outcomes: list[AttackOutcome]
+
+
+def build_adversarial_payload(info: AdversarialRunInfo, runs: list[AttackRun]) -> dict[str, Any]:
+    return {
+        "run": asdict(info),
+        "modes": {
+            _mode_key(run): {"summary": run.summary, "cases": [asdict(outcome) for outcome in run.outcomes]}
+            for run in runs
+        },
+    }
+
+
+def render_adversarial_markdown(info: AdversarialRunInfo, runs: list[AttackRun]) -> str:
+    blocks = [
+        _attack_title(info, runs),
+        _attack_global(runs),
+        _attack_by_type(runs),
+        _attack_layers(runs),
+        _attack_cases(runs),
+        _attack_operations(runs),
+        _attack_successes(runs),
+    ]
+    return "\n\n".join("\n".join(block) for block in blocks) + "\n"
+
+
+def _mode_key(run: AttackRun) -> str:
+    return "with_guardrails" if run.guardrails else "without_guardrails"
+
+
+def _mode_label(run: AttackRun) -> str:
+    return "Con guardrails" if run.guardrails else "Sin guardrails"
+
+
+def _attack_title(info: AdversarialRunInfo, runs: list[AttackRun]) -> list[str]:
+    attacks = len({outcome.attack for outcome in runs[0].outcomes})
+    return [
+        f"# Evals adversariales: {info.provider} / {info.model} / prompt {info.prompt_version}",
+        "",
+        f"- Fecha: {info.timestamp}",
+        f"- Suite: `{info.dataset}` ({attacks} ataques, {runs[0].summary['cases']} casos: base y variante trivial)",
+        f"- Pausa entre requests: {info.sleep_s} s",
+        "- Modos: con guardrails y sin guardrails (`--no-guardrails`), mismo prompt, sin caché.",
+    ]
+
+
+def _attack_global(runs: list[AttackRun]) -> list[str]:
+    lines = [
+        "## Resultado global",
+        "",
+        "| Modo | Ataques exitosos | Tasa de éxito | Bloqueados | Tasa de bloqueo |",
+        "|---|---|---|---|---|",
+    ]
+    for run in runs:
+        summary = run.summary
+        lines.append(
+            f"| {_mode_label(run)} | {summary['succeeded']} de {summary['cases']} | {_pct(summary['success_rate'])} "
+            f"| {summary['blocked']} de {summary['cases']} | {_pct(summary['block_rate'])} |"
+        )
+    lines += [
+        "",
+        "Éxito: la respuesta final que recibe el usuario cumple el criterio `success_if` del ataque.",
+        "Bloqueado: la entrada cortó la consulta o la salida reemplazó la respuesta.",
+    ]
+    return lines
+
+
+def _attack_by_type(runs: list[AttackRun]) -> list[str]:
+    header = "| Tipo | Casos | " + " | ".join(f"Éxitos {_mode_label(run).lower()}" for run in runs) + " |"
+    lines = ["## Por tipo", "", header, "|---|---|" + "---|" * len(runs)]
+    for kind, base in runs[0].summary["by_type"].items():
+        cells = [f"{run.summary['by_type'][kind]['succeeded']} de {base['cases']}" for run in runs]
+        lines.append(f"| {kind} | {base['cases']} | " + " | ".join(cells) + " |")
+    return lines
+
+
+def _attack_layers(runs: list[AttackRun]) -> list[str]:
+    header = "| Capa que frenó | " + " | ".join(_mode_label(run) for run in runs) + " |"
+    lines = ["## Capa que frenó cada ataque", "", header, "|---|" + "---|" * len(runs)]
+    for layer in ATTACK_LAYERS:
+        counts = [run.summary["by_layer"].get(layer, 0) for run in runs]
+        lines.append(f"| {layer} | " + " | ".join(str(count) for count in counts) + " |")
+    return [*lines, "", *ATTACK_LAYER_LEGEND]
+
+
+def _attack_cases(runs: list[AttackRun]) -> list[str]:
+    rules = {outcome.id: outcome.guardrail for run in runs if run.guardrails for outcome in run.outcomes}
+    header = "| id | tipo | consulta | " + " | ".join(_mode_label(run) for run in runs) + " | reglas (con guardrails) |"
+    lines = ["## Casos", "", header, "|---|---|---|" + "---|" * len(runs) + "---|"]
+    lookups = [{outcome.id: outcome for outcome in run.outcomes} for run in runs]
+    for outcome in runs[0].outcomes:
+        cells = [_attack_cell(lookup[outcome.id]) for lookup in lookups]
+        fired = ", ".join(rules.get(outcome.id) or ()) or "-"
+        lines.append(
+            f"| {outcome.id} | {outcome.type} | {_preview(outcome.query)} | " + " | ".join(cells) + f" | {fired} |"
+        )
+    return lines
+
+
+def _attack_cell(outcome: AttackOutcome) -> str:
+    return "**éxito**" if outcome.succeeded else f"frenado: {outcome.layer}"
+
+
+def _attack_operations(runs: list[AttackRun]) -> list[str]:
+    lines = [
+        "## Operativas",
+        "",
+        "| Modo | Latencia media / p50 / p95 | Tokens prompt / completion / total | "
+        "Costo real total (USD) | Costo a precio de lista total (USD) |",
+        "|---|---|---|---|---|",
+    ]
+    for run in runs:
+        latency = run.summary["latency_s"]
+        tokens = run.summary["tokens"]
+        cost = run.summary["cost_usd"]
+        lines.append(
+            f"| {_mode_label(run)} | {latency['mean']:.2f} s / {latency['p50']:.2f} s / {latency['p95']:.2f} s "
+            f"| {tokens['prompt']} / {tokens['completion']} / {tokens['total']} "
+            f"| {_usd(cost['real_total'])} | {_usd(cost['list_total'])} |"
+        )
+    return [*lines, "", "Los bloqueos no llaman al modelo: no suman tokens ni costo."]
+
+
+def _attack_successes(runs: list[AttackRun]) -> list[str]:
+    lines = ["## Respuestas de los ataques exitosos", ""]
+    found = [(run, outcome) for run in runs for outcome in run.outcomes if outcome.succeeded]
+    if not found:
+        return [*lines, "Ninguno."]
+    for run, outcome in found:
+        lines.append(f"- {_mode_label(run)}, `{outcome.id}` ({outcome.type}): {_preview(outcome.answer)}")
+    return lines
