@@ -96,7 +96,7 @@ Opciones:
 | `--model` | ID del modelo del proveedor | El `default_model` del proveedor en `config/models.yaml` |
 | `--prompt` | Versión del prompt en `prompts/` | `v1` |
 
-Con OpenRouter, la regla del proyecto es usar solo modelos `:free`. El código no lo fuerza: la key tiene tope de gasto de USD 0, así que un modelo pago falla con un error claro.
+Con OpenRouter, la regla del proyecto es usar solo modelos `:free`. La CLI no lo fuerza: la key tiene tope de gasto de USD 0, así que un modelo pago falla con un error claro. La suite de evals sí lo verifica antes de llamar a la API.
 
 ## Proveedores
 
@@ -179,14 +179,14 @@ El SDK de Gemini no reintenta por su cuenta (`HttpRetryOptions(attempts=1)`), y 
 
 ## Métricas y costo
 
-Cada request de triage agrega una línea a `data/metrics.jsonl`, también cuando termina en respaldo (`fallback: true`). Es un archivo append-only, en UTF-8, que se versiona. La escribe la CLI después de `triage()`, así `triage()` no depende del disco. Si la escritura falla, la CLI avisa por stderr y el JSON sale igual.
+Cada request de triage agrega una línea a `data/metrics.jsonl`, también cuando termina en respaldo (`fallback: true`). Es un archivo append-only, en UTF-8, que se versiona. La escribe `src/pipeline.py` después de `triage()`, así `triage()` no depende del disco. Si la escritura falla, se avisa por stderr y el JSON sale igual.
 
 No genera línea un error que no es transitorio (`ProviderError`, por ejemplo una clave inválida): no hay respuesta con tokens que contar. Un límite conocido: si un intento de validación consumió tokens y un intento posterior falla con ese tipo de error, esos tokens no se registran, porque la CLI sale con código 1.
 
 | Campo | Pregunta que responde |
 |---|---|
 | `timestamp` | ¿Cuándo se hizo el request? ISO 8601 en UTC. |
-| `source` | ¿Qué lo disparó? `cli` hoy; `eval` y `adversarial` cuando existan sus runners. |
+| `source` | ¿Qué lo disparó? `cli` para la CLI y `eval` para el runner de evals. `adversarial` llegará con el bonus. |
 | `provider`, `model` | ¿Qué proveedor y qué modelo respondieron? |
 | `prompt_version` | ¿Con qué versión del prompt se generó la respuesta? |
 | `prompt_tokens`, `completion_tokens`, `total_tokens` | ¿Cuántos tokens de entrada, de salida y en total consumió el request? Suma los de todos los intentos. En Gemini, `completion_tokens` incluye el razonamiento. |
@@ -262,7 +262,7 @@ costo real          = 0 USD/día (modelos gratuitos)
 ### Límites de esta medición
 
 - Son pocas muestras. Los promedios y la proyección son orientativos hasta correr el dataset completo.
-- La latencia fue de 39,2 s en el primer ticket de OpenRouter y de 9,3 s en el segundo. Las dos llamadas a Gemini de la Parte 4 tardaron 2,1 s y 2,0 s. Con pocas muestras no hay percentiles; p50 y p95 llegan con el runner de evals.
+- La latencia fue de 39,2 s en el primer ticket de OpenRouter y de 9,3 s en el segundo. Las dos llamadas a Gemini de la Parte 4 tardaron 2,1 s y 2,0 s. Con pocas muestras no hay percentiles; la suite de evals calcula p50 y p95 sobre el dataset completo (sección Evals).
 - Los intentos fallidos (429, 5xx, timeout) no aportan tokens porque no devuelven uso. Sus tokens no se cuentan.
 - Si el modelo no tiene precio en `config/models.yaml`, `cost_usd` y `cost_usd_list_price` quedan en `null` y la CLI avisa por stderr.
 - El cupo diario de OpenRouter depende de la compra de la cuenta: con 400 tickets por día, 1.000 requests alcanzan solo si la cuenta compró USD 10 o más; con menos, el cupo es 50 y los tickets excedentes devuelven 429 y terminan en respaldo.
@@ -348,9 +348,91 @@ Counter({'informal': 23, 'regional_ar': 12, 'formal': 11, 'regional_mx': 8, 'reg
 
 ### Qué no mide
 
-- Las acciones no tienen una respuesta esperada. El runner va a medir qué porcentaje de las acciones pertenece al catálogo, no si coinciden con una lista exacta: así no se castiga redactar distinto un mismo paso.
+- Las acciones no tienen una respuesta esperada. El runner mide qué porcentaje de las acciones pertenece al catálogo, no si coinciden con una lista exacta: así no se castiga redactar distinto un mismo paso.
 - Con 44 casos, una accuracy de 80 % tiene un intervalo de confianza de unos ±12 puntos. Diferencias chicas entre dos prompts no son concluyentes, por eso conviene repetir las corridas antes de elegir.
 - Los ejemplos few-shot de los prompts (Parte 7) no están en este archivo y no se van a agregar. Si un ejemplo del prompt fuera un caso del dataset, el modelo vería la respuesta antes de la prueba y la métrica de ese caso quedaría inflada.
+
+## Evals
+
+La suite corre los 44 casos del dataset por la misma ruta que la CLI (`triage()`, con el proveedor y el prompt elegidos) y reporta métricas globales y por categoría. Es un script simple, sin framework de testing.
+
+Desde la raíz del repo:
+
+```powershell
+.venv\Scripts\python.exe -m evals.runner
+```
+
+| Opción | Descripción | Por defecto |
+|---|---|---|
+| `--provider` | `openrouter` o `gemini` | `openrouter` |
+| `--model` | ID del modelo. Con OpenRouter tiene que terminar en `:free`; el runner lo verifica antes de llamar a la API | `default_model` del proveedor |
+| `--prompt` | Versión del prompt en `prompts/` | `v1` |
+| `--limit N` | Evalúa solo los primeros N casos. No guarda reportes | todos los casos |
+| `--sleep S` | Segundos de pausa entre requests | `eval_sleep_s` de `config/models.yaml`: 3,2 s en OpenRouter (20 requests por minuto como máximo) y 4,5 s en Gemini |
+
+El progreso de cada caso va a stderr y el reporte en Markdown va a stdout. Una corrida completa guarda dos archivos en `evals/results/`: `<AAAAmmdd-HHMM>_<proveedor>_<modelo>_<prompt>.json`, con las métricas y el detalle de cada caso, y un `.md` con las mismas tablas. Salida real de la línea base (fragmento de stderr):
+
+```text
+[01/44] t001 esperada=billing predicha=billing ok 14.0 s
+[22/44] t022 esperada=technical predicha=billing FALLA 17.7 s
+[33/44] t033 esperada=billing predicha=other FALLA 7.2 s
+```
+
+Una corrida completa tardó unos 8 minutos con OpenRouter (44 requests más las pausas). Un caso que termina en respaldo cuenta como predicción `other`, que es lo que devolvió el sistema, y se informa aparte en el reporte. Un error que no es transitorio (por ejemplo, clave inválida) aborta la corrida con `Error: ...` y código 1.
+
+### Qué mide cada métrica y por qué importa acá
+
+| Métrica | Qué responde | Por qué importa en este caso |
+|---|---|---|
+| Accuracy | ¿Qué fracción de los tickets cayó en la categoría correcta? | Es fácil de leer, pero puede engañar si las clases están desbalanceadas. El dataset tiene 11 casos por categoría. |
+| Precision por categoría | De los tickets que el sistema marca como X, ¿cuántos son X? | Precision baja en `billing` significa que el agente recibe como cobros tickets de otra cola. |
+| Recall por categoría | De los tickets que son X, ¿cuántos encuentra el sistema? | Recall bajo en `billing` significa cobros mal derivados: el error más caro para el cliente. |
+| F1 | Media armónica de precision y recall | Resume una categoría en un número sin que una compense a la otra. |
+| Macro-F1 | Promedio de F1 de las cuatro categorías | Cada categoría pesa lo mismo: una categoría floja no se tapa con las demás. |
+| Matriz de confusión | Cuántas veces una categoría esperada salió como otra | Muestra qué pares se confunden, que es lo que la Parte 7 tiene que corregir. |
+| Contrato | % válido al primer intento, válido tras reintento y respaldo | Un contrato roto obliga a reintentar o deja al agente con un respaldo en vez de una propuesta. |
+| Acciones dentro del catálogo | % de acciones que están en `ACTION_CATALOG` | Una acción fuera del catálogo no se puede asociar a un procedimiento del agente. |
+| Calibración | Accuracy con confianza ≥ 0,8 y con confianza < 0,8 | Si la confianza no separa aciertos de errores, no sirve para decidir qué tickets pasan a revisión humana. |
+| Latencia media, p50 y p95 | Cuánto espera la persona | El p95 es la espera de los peores casos, la que más se queja un cliente. |
+| Tokens, costo real y a precio de lista | Cuánto consume cada ticket y cuánto costaría | La proyección es el costo por ticket × 400 tickets por día, con la fórmula de la sección de métricas. |
+
+### Línea base: prompt v1
+
+Prompt v1 (zero-shot) con `nvidia/nemotron-3.5-super-vl:free` por OpenRouter, 44 casos, corrida del 08/11/2026. Reporte completo: [evals/results/20261108-1428_openrouter_nvidia-nemotron-3-5-super-vl-free_v1.md](evals/results/20261108-1428_openrouter_nvidia-nemotron-3-5-super-vl-free_v1.md).
+
+| Métrica global | Valor |
+|---|---|
+| Accuracy | 95,5 % (42 de 44) |
+| Macro-F1 | 0,954 |
+| Respaldos | 0 |
+| Válido al primer intento | 44 de 44 |
+| Acciones dentro del catálogo | 81 de 81 |
+| Calibración: confianza ≥ 0,8 / < 0,8 | 97,7 % (43 casos) / 0 % (1 caso) |
+| Latencia media / p50 / p95 | 7,36 s / 5,48 s / 16,60 s |
+| Tokens (entrada / salida) | 28.850 / 29.094 |
+| Costo real / a precio de lista | 0 USD / 0,018874 USD en total |
+| Proyección a 400 tickets por día (precio de lista) | 0,1716 USD por día |
+
+| Categoría | Precision | Recall | F1 | Support |
+|---|---|---|---|---|
+| `billing` | 90,9 % | 90,9 % | 0,909 | 11 |
+| `technical` | 100,0 % | 90,9 % | 0,952 | 11 |
+| `account` | 100,0 % | 100,0 % | 1,000 | 11 |
+| `other` | 91,7 % | 100,0 % | 0,957 | 11 |
+
+Casos fallados:
+
+| id | esperada | predicha | confianza | Query (recortada) |
+|---|---|---|---|---|
+| t022 | technical | billing | 0,75 | ¡Hace tres días que no puedo facturar porque el punto de venta no abre! Y encima me cobra… |
+| t033 | billing | other | 0,85 | Hola, ¿cuánto me sale por mes el plan que tengo contratado? Lo necesito para cerrar el pr… |
+
+Hipótesis para la Parte 7:
+
+- **t022** es multi-intención (regla 1 de `evals/criterios_etiquetado.md`): la caída del punto de venta es la causa y el reintegro es consecuencia. El prompt v1 no tiene reglas de desempate y `reintegros` figura en la definición de `billing`, así que el modelo se quedó con el pedido de plata. Eligió `gestionar_reintegro` y no escaló a soporte técnico.
+- **t033** pregunta cuánto cuesta el plan que el cliente ya tiene (billing). El v1 pone "planes" en `other` sin distinguir un plan contratado de uno nuevo, así que el modelo lo leyó como consulta comercial.
+
+Con 44 casos, un caso equivale a 2,3 puntos de accuracy. Diferencias de uno o dos casos entre prompts no son concluyentes: hay que repetir la corrida, porque con temperature 0 el modelo varía un poco entre ejecuciones.
 
 ## Arquitectura
 
@@ -358,7 +440,10 @@ Counter({'informal': 23, 'regional_ar': 12, 'formal': 11, 'regional_mx': 8, 'reg
 python -m src.main "<consulta>" [--provider] [--model] [--prompt]
         |
         v
-src/main.py          parsea argumentos, carga .env y arma proveedor y prompt
+src/main.py          parsea argumentos e imprime el JSON o el error
+        |
+        v
+src/pipeline.py      arma proveedor, prompt y max_parse_retries; llama a triage() y registra la métrica
         |
         v
 src/triage.py        triage(query, provider, prompt, max_parse_retries) -> TriageResult
@@ -370,7 +455,7 @@ src/triage.py        triage(query, provider, prompt, max_parse_retries) -> Triag
         |-- reintenta la validación o devuelve el respaldo
         |
         v
-src/main.py          registra la línea en data/metrics.jsonl (src/metrics.py)
+src/metrics.py       escribe la línea en data/metrics.jsonl (source = cli o eval)
         |
         v
 stdout: JSON {answer, confidence, category, actions}
@@ -379,9 +464,10 @@ stderr: avisos; "Error: ..." y código de salida 1 si algo impide responder
 
 | Módulo | Responsabilidad |
 |---|---|
-| `src/main.py` | CLI: parsea argumentos, arma las dependencias, imprime el JSON o el error y registra la métrica. |
+| `src/main.py` | CLI: parsea argumentos, llama al pipeline, imprime el JSON o el error. |
+| `src/pipeline.py` | Arma las dependencias (proveedor, prompt, reintentos) y registra cada request en `data/metrics.jsonl`. Lo usan la CLI y el runner de evals. |
 | `src/config.py` | Carga `.env` y `config/models.yaml`. |
-| `src/schema.py` | Contrato `SupportResponse` (Pydantic). Su JSON Schema es el que se envía al modelo. |
+| `src/schema.py` | Contrato `SupportResponse` (Pydantic). Su JSON Schema es el que se envía al modelo. `ACTION_CATALOG` y `CATEGORIES` son las listas de acciones y categorías que usan el prompt y el runner. |
 | `src/parsing.py` | Extrae el primer objeto JSON de la respuesta (sin cercos de código ni texto alrededor) y lo valida. |
 | `src/prompts.py` | Carga `prompts/*.yaml` y arma el `system` y los mensajes. |
 | `src/triage.py` | Orquesta el flujo: reintento de validación, contrato de respaldo, tokens y latencia sumados de todos los intentos. |
@@ -391,12 +477,16 @@ stderr: avisos; "Error: ..." y código de salida 1 si algo impide responder
 | `src/providers/gemini.py` | Cliente de Gemini (SDK `google-genai`). Convierte sus errores en las excepciones del proyecto. |
 | `src/providers/__init__.py` | Registro de proveedores (`PROVIDERS`) y `get_provider`. |
 | `prompts/v1_zero_shot.yaml` | Prompt v1, zero-shot. |
-| `config/models.yaml` | Valores por defecto, proveedores, modelos y precios (con fuente y fecha). |
+| `config/models.yaml` | Valores por defecto, proveedores, modelos, precios (con fuente y fecha) y pausa del runner (`eval_sleep_s`). |
+| `evals/runner.py` | Corre el dataset por `triage()` con pausa entre requests, registra las métricas con `source = eval` y guarda el reporte. |
+| `evals/scoring.py` | Métricas (accuracy, macro-F1, precision, recall, F1, matriz, contrato, acciones, calibración, latencia, costo). Funciones puras, sin I/O. |
+| `evals/report.py` | Arma el JSON y el Markdown de cada corrida y los guarda en `evals/results/`. |
 
 ## Pendiente
 
 - Guardrails de entrada y de salida (Parte 8). Hoy un ticket puede contener `</ticket>` y cerrar el delimitador antes de tiempo.
-- Runner de evals (Parte 6): ejecuta el dataset con cada prompt y reporta las métricas globales y por categoría.
+- Comparar las versiones de prompt con el mismo dataset (Parte 7) y repetir cada corrida: con temperature 0 el modelo varía un poco entre ejecuciones.
+- Las fechas de los reportes están en hora local, sin zona horaria.
 - Segunda revisión independiente de las etiquetas del dataset.
 - Confirmar los límites por minuto y por día de `gemini-3.5-flash-lite` en AI Studio.
 - Registrar los tokens de intentos previos cuando un intento posterior falla con un error que no es transitorio.
