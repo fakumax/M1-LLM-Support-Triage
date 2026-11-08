@@ -36,9 +36,13 @@ class TransientProviderError(ProviderError):
     def __init__(self, message: str, retry_after_s: float | None = None) -> None:
         super().__init__(message)
         self.retry_after_s = retry_after_s
+        self.attempts = 1
 
 
 class LLMProvider(ABC):
+    name: str
+    model: str
+
     @abstractmethod
     def complete(self, system: str, messages: list[dict[str, str]], json_schema: dict[str, Any]) -> LLMResponse:
         ...
@@ -61,6 +65,7 @@ def call_with_backoff(
             response = call()
         except TransientProviderError as error:
             if attempt >= max_api_retries:
+                error.attempts = attempt + 1
                 raise
             sleep(backoff_delay(attempt, error.retry_after_s))
             attempt += 1

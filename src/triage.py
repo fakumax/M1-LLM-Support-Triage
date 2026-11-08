@@ -1,11 +1,12 @@
 import time
 from dataclasses import dataclass
 
-from pydantic import ValidationError
-
+from src.parsing import InvalidResponseError, parse_support_response
 from src.prompts import Prompt, build_messages
-from src.providers.base import LLMProvider, LLMResponse
+from src.providers.base import LLMProvider, LLMResponse, TransientProviderError
 from src.schema import SupportResponse
+
+FALLBACK_ANSWER = "No pudimos procesar tu consulta automáticamente. Un agente de soporte la va a revisar."
 
 
 class TriageError(Exception):
@@ -15,32 +16,92 @@ class TriageError(Exception):
 @dataclass(frozen=True)
 class TriageResult:
     response: SupportResponse
-    llm: LLMResponse
+    provider: str
+    model: str
+    prompt_tokens: int
+    completion_tokens: int
+    reported_cost_usd: float | None
     latency_s: float
     attempts: int
     fallback: bool = False
     guardrail: str | None = None
 
 
-def triage(query: str, provider: LLMProvider, prompt: Prompt) -> TriageResult:
+@dataclass
+class _Usage:
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    reported_cost_usd: float | None = None
+    attempts: int = 0
+
+    def add(self, llm: LLMResponse) -> None:
+        self.prompt_tokens += llm.prompt_tokens
+        self.completion_tokens += llm.completion_tokens
+        self.attempts += llm.attempts
+        if llm.reported_cost_usd is not None:
+            self.reported_cost_usd = (self.reported_cost_usd or 0.0) + llm.reported_cost_usd
+
+
+def triage(query: str, provider: LLMProvider, prompt: Prompt, max_parse_retries: int) -> TriageResult:
     started = time.perf_counter()
     if not query.strip():
         raise TriageError("la consulta está vacía")
     system, messages = build_messages(prompt, query)
-    llm = provider.complete(system, messages, SupportResponse.model_json_schema())
-    try:
-        response = SupportResponse.model_validate_json(llm.text)
-    except ValidationError as error:
-        raise TriageError(f"la respuesta del modelo no cumple el contrato: {_describe(error)}") from error
-    latency_s = time.perf_counter() - started
-    return TriageResult(
-        response=response,
-        llm=llm,
-        latency_s=round(latency_s, 3),
-        attempts=llm.attempts,
+    schema = SupportResponse.model_json_schema()
+    usage = _Usage()
+    for _ in range(max_parse_retries + 1):
+        try:
+            llm = provider.complete(system, messages, schema)
+        except TransientProviderError as error:
+            usage.attempts += error.attempts
+            return _result(fallback_response(), provider, usage, started, fallback=True)
+        usage.add(llm)
+        try:
+            response = parse_support_response(llm.text)
+        except InvalidResponseError as error:
+            messages = [*messages, *_correction_turn(llm.text, error)]
+            continue
+        return _result(response, provider, usage, started, fallback=False)
+    return _result(fallback_response(), provider, usage, started, fallback=True)
+
+
+def fallback_response() -> SupportResponse:
+    return SupportResponse(
+        answer=FALLBACK_ANSWER,
+        confidence=0.0,
+        category="other",
+        actions=["derivar_a_agente_humano"],
     )
 
 
-def _describe(error: ValidationError) -> str:
-    fields = sorted({".".join(str(part) for part in item["loc"]) for item in error.errors() if item["loc"]})
-    return ", ".join(fields) or "JSON inválido"
+def _correction_turn(text: str, error: InvalidResponseError) -> list[dict[str, str]]:
+    return [
+        {"role": "assistant", "content": text.strip() or "(respuesta vacía)"},
+        {
+            "role": "user",
+            "content": (
+                f"Tu respuesta no cumple el contrato ({error}). Respondé de nuevo con un único "
+                "objeto JSON corregido, sin texto fuera del JSON."
+            ),
+        },
+    ]
+
+
+def _result(
+    response: SupportResponse,
+    provider: LLMProvider,
+    usage: _Usage,
+    started: float,
+    fallback: bool,
+) -> TriageResult:
+    return TriageResult(
+        response=response,
+        provider=provider.name,
+        model=provider.model,
+        prompt_tokens=usage.prompt_tokens,
+        completion_tokens=usage.completion_tokens,
+        reported_cost_usd=usage.reported_cost_usd,
+        latency_s=round(time.perf_counter() - started, 3),
+        attempts=usage.attempts,
+        fallback=fallback,
+    )

@@ -28,11 +28,13 @@ def main(argv: list[str] | None = None) -> int:
     try:
         provider = get_provider(args.provider, args.model)
         prompt = load_prompt(args.prompt)
-        result = triage(args.query, provider, prompt)
+        result = triage(args.query, provider, prompt, load_models_config()["defaults"]["max_parse_retries"])
     except (ProviderError, TriageError, PromptError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 1
     _register_metrics(result, prompt.version)
+    if result.fallback:
+        print("Aviso: no se pudo procesar automáticamente; la consulta queda para un agente humano.", file=sys.stderr)
     print(json.dumps(result.response.model_dump(), ensure_ascii=False, indent=2))
     return 0
 
@@ -46,7 +48,7 @@ def _register_metrics(result: TriageResult, prompt_version: str) -> None:
         return
     if record["cost_usd"] is None:
         print(
-            f"Aviso: {result.llm.model} no tiene precio en config/models.yaml; cost_usd queda en null",
+            f"Aviso: {result.model} no tiene precio en config/models.yaml; cost_usd queda en null",
             file=sys.stderr,
         )
 

@@ -53,33 +53,32 @@ def find_pricing(provider: str, model: str) -> ModelPricing | None:
 
 
 def build_record(result: TriageResult, source: str, prompt_version: str) -> dict[str, Any]:
-    llm = result.llm
-    pricing = find_pricing(llm.provider, llm.model)
+    pricing = find_pricing(result.provider, result.model)
     cost_usd = None
     cost_usd_list_price = None
     if pricing is not None:
         cost_usd = estimate_cost(
-            llm.prompt_tokens, llm.completion_tokens, pricing.price_in_per_mtok, pricing.price_out_per_mtok
+            result.prompt_tokens, result.completion_tokens, pricing.price_in_per_mtok, pricing.price_out_per_mtok
         )
         cost_usd_list_price = estimate_cost(
-            llm.prompt_tokens,
-            llm.completion_tokens,
+            result.prompt_tokens,
+            result.completion_tokens,
             pricing.list_price.in_per_mtok,
             pricing.list_price.out_per_mtok,
         )
     return {
         "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "source": source,
-        "provider": llm.provider,
-        "model": llm.model,
+        "provider": result.provider,
+        "model": result.model,
         "prompt_version": prompt_version,
-        "prompt_tokens": llm.prompt_tokens,
-        "completion_tokens": llm.completion_tokens,
-        "total_tokens": llm.prompt_tokens + llm.completion_tokens,
+        "prompt_tokens": result.prompt_tokens,
+        "completion_tokens": result.completion_tokens,
+        "total_tokens": result.prompt_tokens + result.completion_tokens,
         "latency_s": result.latency_s,
         "cost_usd": cost_usd,
         "cost_usd_list_price": cost_usd_list_price,
-        "reported_cost_usd": llm.reported_cost_usd,
+        "reported_cost_usd": result.reported_cost_usd,
         "attempts": result.attempts,
         "fallback": result.fallback,
         "category": result.response.category,

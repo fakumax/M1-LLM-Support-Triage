@@ -18,6 +18,8 @@ PROVIDER_NAME = "openrouter"
 class OpenRouterProvider(LLMProvider):
     def __init__(self, settings: ProviderSettings) -> None:
         self._settings = settings
+        self.name = PROVIDER_NAME
+        self.model = settings.model
         self._client = openai.OpenAI(
             api_key=settings.api_key,
             base_url=settings.base_url,
