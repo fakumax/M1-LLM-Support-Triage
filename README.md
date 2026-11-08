@@ -47,24 +47,23 @@ Copiar `.env.example` a `.env` y completar las claves:
 python -m src.main "Buen día. El mes pasado me cobraron el plan dos veces en la misma tarjeta. ¿Me pueden devolver uno de los cargos?"
 ```
 
-Salida de una ejecución real (proveedor y modelo por defecto, prompt `v1`):
+Salida de una ejecución real (proveedor, modelo y prompt por defecto, `v3`):
 
 ```json
 {
-  "answer": "Buen día. Lamento los inconvenientes con el cobro duplicado. Un agente revisará si hubo un cargo duplicado en tu tarjeta y evaluará la posibilidad de un reintegro. Para agilizar, ¿podrías indicarme la fecha aproximada y el monto de los cargos?",
+  "answer": "Entendido. Vamos a revisar si hubo un cobro duplicado en tu tarjeta el mes pasado y te respondemos por este canal. Un agente de soporte analiza el caso y te avisa los próximos pasos.",
   "confidence": 0.95,
   "category": "billing",
   "actions": [
-    "verificar_cobro_duplicado",
-    "gestionar_reintegro"
+    "verificar_cobro_duplicado"
   ]
 }
 ```
 
-Mismo ticket con Gemini (`--provider gemini`), salida real:
+Mismo ticket con Gemini (`--provider gemini --prompt v1`), salida real con el prompt v1:
 
 ```powershell
-python -m src.main "Hola, me cobraron dos veces la suscripción de este mes, necesito que me reintegren uno de los cargos." --provider gemini
+python -m src.main "Hola, me cobraron dos veces la suscripción de este mes, necesito que me reintegren uno de los cargos." --provider gemini --prompt v1
 ```
 
 ```json
@@ -94,7 +93,7 @@ Opciones:
 |---|---|---|
 | `--provider` | Proveedor LLM registrado en `src/providers/__init__.py`: `openrouter` o `gemini` | `openrouter` |
 | `--model` | ID del modelo del proveedor | El `default_model` del proveedor en `config/models.yaml` |
-| `--prompt` | Versión del prompt en `prompts/` | `v1` |
+| `--prompt` | Versión del prompt en `prompts/` | `v3` |
 
 Con OpenRouter, la regla del proyecto es usar solo modelos `:free`. La CLI no lo fuerza: la key tiene tope de gasto de USD 0, así que un modelo pago falla con un error claro. La suite de evals sí lo verifica antes de llamar a la API.
 
@@ -366,7 +365,7 @@ Desde la raíz del repo:
 |---|---|---|
 | `--provider` | `openrouter` o `gemini` | `openrouter` |
 | `--model` | ID del modelo. Con OpenRouter tiene que terminar en `:free`; el runner lo verifica antes de llamar a la API | `default_model` del proveedor |
-| `--prompt` | Versión del prompt en `prompts/` | `v1` |
+| `--prompt` | Versión del prompt en `prompts/` | `v3` |
 | `--limit N` | Evalúa solo los primeros N casos. No guarda reportes | todos los casos |
 | `--sleep S` | Segundos de pausa entre requests | `eval_sleep_s` de `config/models.yaml`: 3,2 s en OpenRouter (20 requests por minuto como máximo) y 4,5 s en Gemini |
 
@@ -395,6 +394,7 @@ Una corrida completa tardó unos 8 minutos con OpenRouter (44 requests más las 
 | Calibración | Accuracy con confianza ≥ 0,8 y con confianza < 0,8 | Si la confianza no separa aciertos de errores, no sirve para decidir qué tickets pasan a revisión humana. |
 | Latencia media, p50 y p95 | Cuánto espera la persona | El p95 es la espera de los peores casos, la que más se queja un cliente. |
 | Tokens, costo real y a precio de lista | Cuánto consume cada ticket y cuánto costaría | La proyección es el costo por ticket × 400 tickets por día, con la fórmula de la sección de métricas. |
+| Respuestas con promesas indebidas | ¿La respuesta promete o afirma reintegros, descuentos, plazos o aprobaciones que el agente todavía no decidió? | El cliente toma ese texto como compromiso. `src/policy.py` la detecta con patrones en español, portugués e inglés. Se informa con los ids de los casos. |
 
 ### Línea base: prompt v1
 
@@ -434,6 +434,72 @@ Hipótesis para la Parte 7:
 
 Con 44 casos, un caso equivale a 2,3 puntos de accuracy. Diferencias de uno o dos casos entre prompts no son concluyentes: hay que repetir la corrida, porque con temperature 0 el modelo varía un poco entre ejecuciones.
 
+La segunda corrida de este mismo prompt (`20261108-1450`) dio 97,7 % y falló solo t022: t033 cambió de resultado con el mismo modelo y temperature 0. Ver la sección siguiente.
+
+## Context engineering y elección del prompt
+
+Se compararon tres versiones del prompt con el mismo modelo (`nvidia/nemotron-3.5-super-vl:free`), el mismo dataset de 44 casos y temperature 0. La versión elegida es **v3**: few-shot con reglas.
+
+| Versión | Técnica | Qué agrega |
+|---|---|---|
+| `v1_zero_shot.yaml` | Zero-shot | Línea base: categorías en pocas palabras, catálogo de acciones y reglas de tono y de no prometar. |
+| `v2_few_shot.yaml` | Few-shot | v1 más 8 ejemplos, 2 por categoría (uno claro y uno de frontera). Ninguno está en el dataset. |
+| `v3_few_shot_reglas.yaml` | Few-shot con reglas | v2 más las definiciones de `evals/criterios_etiquetado.md`, reglas de desempate (multi-intención, login, plan, facturación electrónica), reglas generales y un bloque de políticas: no promete reintegros, descuentos, plazos ni aprobaciones. |
+
+Resultados de cada corrida completa (los reportes están en `evals/results/`: v1 `20261108-1428` y `20261108-1450`, v2 `20261108-1457`, v3 `20261108-1503` y `20261108-1509`):
+
+| Métrica | v1 (1.ª corrida) | v1 (2.ª corrida) | v2 | v3 (1.ª corrida) | v3 (2.ª corrida) |
+|---|---|---|---|---|---|
+| Accuracy | 95,5 % | 97,7 % | 97,7 % | 100 % | 100 % |
+| Macro-F1 | 0,954 | 0,977 | 0,977 | 1,000 | 1,000 |
+| F1 `billing` | 0,909 | 0,957 | 0,957 | 1,000 | 1,000 |
+| F1 `technical` | 0,952 | 0,952 | 0,952 | 1,000 | 1,000 |
+| F1 `account` | 1,000 | 1,000 | 1,000 | 1,000 | 1,000 |
+| F1 `other` | 0,957 | 1,000 | 1,000 | 1,000 | 1,000 |
+| JSON válido al primer intento | 100 % | 100 % | 100 % | 100 % | 100 % |
+| Tokens por ticket (entrada + salida) | 1.317 | 1.358 | 1.982 | 2.663 | 2.661 |
+| Latencia p50 | 5,48 s | 6,31 s | 3,83 s | 3,64 s | 4,39 s |
+| Costo por ticket a precio de lista | 0,000429 USD | 0,000449 USD | 0,000435 USD | 0,000548 USD | 0,000547 USD |
+| Respuestas con promesas indebidas | no medido (*) | 0 % | 0 % | 0 % | 0 % |
+| Casos fallados | t022, t033 | t022 | t022 | ninguno | ninguno |
+
+(*) La primera corrida del v1 se hizo antes de guardar el `answer` en el reporte, así que su porcentaje de promesas no se puede recalcular.
+
+**Ruido.** Dos corridas del mismo prompt v1 difieren en un caso (t033): macro-F1 de 0,954 a 0,977, una diferencia de 0,023. Ese es el ruido de referencia. Las dos corridas de v3 dan el mismo resultado: 44 de 44.
+
+**Regla de elección.** Se aplicó en este orden: (1) macro-F1, solo si la diferencia supera el ruido; (2) porcentaje de promesas indebidas, menos es mejor; (3) que corrija t022 o t033 sin introducir fallos nuevos; (4) tokens y latencia.
+
+1. **Macro-F1:** v3 sube de 0,977 a 1,000 frente a la segunda corrida del v1. Esa diferencia es igual al ruido medido (un caso), así que **no lo supera de forma inequívoca**. La diferencia de categoría queda en el límite del ruido, y se documenta así.
+2. **Promesas indebidas:** 0 % en las tres versiones. Empate.
+3. **Casos corregidos:** t022 falló en las dos corridas del v1 y en v2, y v3 lo acierta en sus dos corridas. t033 también queda bien en v3 en sus dos corridas. v3 no introduce fallos nuevos y v2 no corrige t022. Por este criterio gana v3.
+4. **Costo y latencia:** no desempatan, porque v3 ya gana en el paso 3. Para anotar el costo: v3 usa casi el doble de tokens por ticket que v1 (2.661 contra 1.358), porque el system prompt y los ejemplos viajan en cada request, y su costo a precio de lista es un 22 % mayor por ticket. La latencia varía entre corridas del mismo modelo (p50 de 3,64 s y 4,39 s en v3), así que no se puede comparar con confianza.
+
+**Qué se probó y qué falló.**
+
+- **v2 no mejoró a v1 de forma repetible.** Tiene el mismo resultado que la segunda corrida del v1 y sigue fallando t022. Los ejemplos de frontera no alcanzaron para la multi-intención.
+- **La hipótesis de v3 sobre promesas no se puede comprobar con este dataset.** El v1 ya tenía 0 % de promesas, así que la métrica no discrimina entre versiones.
+
+**Chain-of-thought.** No se agregó como versión aparte. Los modelos gratuitos ya razonan antes de responder (cientos de tokens de razonamiento que no aparecen en la salida), y el contrato tiene solo cuatro campos. Un campo de razonamiento cambiaría el contrato que recibe el consumidor (`{answer, confidence, category, actions}`), así que el razonamiento queda dentro del modelo.
+
+**Casos que siguen fallando.** Con v3, ninguno en las dos corridas. Con v1 y v2, t022: "¡Hace tres días que no puedo facturar porque el punto de venta no abre! Y encima me cobraron el mes completo…". Su etiqueta es `technical` por la regla 1 de los criterios (la caída es la causa y el reintegro es consecuencia).
+
+**Limitaciones.**
+
+- **Circularidad.** Las reglas de v3 salen de `evals/criterios_etiquetado.md`, que es la definición con la que se etiquetó el dataset, y se escribieron después de ver los dos fallos del v1 (t022 y t033). Por eso el 100 % de v3 no es una estimación fuera de muestra. Validarlo exige tickets nuevos, etiquetados sin mirar el prompt.
+- **Ruido con dos corridas por versión.** Un caso equivale a 2,3 puntos de accuracy, así que la comparación tiene poca resolución.
+- **Un solo modelo.** Gemini no se evaluó: la documentación de AI Studio no publica límites gratuitos para `gemini-3.5-flash-lite` (aparece solo en tablas de pago), y la especificación pide verificarlos antes de correr evals.
+- **Detector de promesas (`src/policy.py`).** Son patrones de expresiones regulares, probados offline con 22 casos positivos y 34 negativos. Falso positivo conocido: "te devolvemos la llamada", donde devolver no es un reintegro. Falso negativo conocido: promesas vagas como "a la brevedad" o "en breve", que no tienen un plazo concreto.
+
+Para reproducir cada versión, desde la raíz del repo en PowerShell:
+
+```powershell
+.venv\Scripts\python.exe -m evals.runner --prompt v1
+.venv\Scripts\python.exe -m evals.runner --prompt v2
+.venv\Scripts\python.exe -m evals.runner --prompt v3
+```
+
+Cada corrida completa tarda unos 8 minutos y guarda su reporte. Desde esta etapa, el default es v3 (`defaults.prompt_version` en `config/models.yaml`).
+
 ## Arquitectura
 
 ```text
@@ -470,23 +536,26 @@ stderr: avisos; "Error: ..." y código de salida 1 si algo impide responder
 | `src/schema.py` | Contrato `SupportResponse` (Pydantic). Su JSON Schema es el que se envía al modelo. `ACTION_CATALOG` y `CATEGORIES` son las listas de acciones y categorías que usan el prompt y el runner. |
 | `src/parsing.py` | Extrae el primer objeto JSON de la respuesta (sin cercos de código ni texto alrededor) y lo valida. |
 | `src/prompts.py` | Carga `prompts/*.yaml` y arma el `system` y los mensajes. |
+| `src/policy.py` | Detecta promesas indebidas en una respuesta (reintegros, descuentos, plazos, aprobaciones) con patrones en español, portugués e inglés. Lo usa el scoring de evals y lo va a reusar el guardrail de salida (Parte 8). |
 | `src/triage.py` | Orquesta el flujo: reintento de validación, contrato de respaldo, tokens y latencia sumados de todos los intentos. |
 | `src/metrics.py` | Costo (`estimate_cost`, precios de `config/models.yaml`) y registro append-only en `data/metrics.jsonl`. |
 | `src/providers/base.py` | `LLMResponse`, `LLMProvider`, excepciones (`ProviderError`, `TransientProviderError`), backoff y tope de `Retry-After`. |
 | `src/providers/openrouter.py` | Cliente de OpenRouter (SDK `openai` con la `base_url` de OpenRouter). |
 | `src/providers/gemini.py` | Cliente de Gemini (SDK `google-genai`). Convierte sus errores en las excepciones del proyecto. |
 | `src/providers/__init__.py` | Registro de proveedores (`PROVIDERS`) y `get_provider`. |
-| `prompts/v1_zero_shot.yaml` | Prompt v1, zero-shot. |
+| `prompts/v1_zero_shot.yaml` | Prompt v1, zero-shot: línea base. |
+| `prompts/v2_few_shot.yaml` | Prompt v2, few-shot: v1 más 8 ejemplos. |
+| `prompts/v3_few_shot_reglas.yaml` | Prompt v3, few-shot con reglas de desempate y políticas. Es el default. |
 | `config/models.yaml` | Valores por defecto, proveedores, modelos, precios (con fuente y fecha) y pausa del runner (`eval_sleep_s`). |
 | `evals/runner.py` | Corre el dataset por `triage()` con pausa entre requests, registra las métricas con `source = eval` y guarda el reporte. |
-| `evals/scoring.py` | Métricas (accuracy, macro-F1, precision, recall, F1, matriz, contrato, acciones, calibración, latencia, costo). Funciones puras, sin I/O. |
+| `evals/scoring.py` | Métricas (accuracy, macro-F1, precision, recall, F1, matriz, contrato, acciones, calibración, latencia, costo y promesas indebidas). Funciones puras, sin I/O. |
 | `evals/report.py` | Arma el JSON y el Markdown de cada corrida y los guarda en `evals/results/`. |
 
 ## Pendiente
 
 - Guardrails de entrada y de salida (Parte 8). Hoy un ticket puede contener `</ticket>` y cerrar el delimitador antes de tiempo.
-- Comparar las versiones de prompt con el mismo dataset (Parte 7) y repetir cada corrida: con temperature 0 el modelo varía un poco entre ejecuciones.
+- Validar v3 con tickets nuevos: sus reglas se escribieron después de ver los fallos del v1 en este mismo dataset (ver context engineering).
 - Las fechas de los reportes están en hora local, sin zona horaria.
 - Segunda revisión independiente de las etiquetas del dataset.
-- Confirmar los límites por minuto y por día de `gemini-3.5-flash-lite` en AI Studio.
+- Evaluar con Gemini: la documentación de AI Studio no publica límites gratuitos para `gemini-3.5-flash-lite`, así que la comparativa se corrió solo con OpenRouter.
 - Registrar los tokens de intentos previos cuando un intento posterior falla con un error que no es transitorio.
