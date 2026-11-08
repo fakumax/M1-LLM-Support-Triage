@@ -17,6 +17,7 @@ class RunInfo:
     prompt_version: str
     dataset: str
     sleep_s: float
+    guardrails: bool
 
 
 def build_payload(info: RunInfo, summary: dict[str, Any], outcomes: list[CaseOutcome]) -> dict[str, Any]:
@@ -67,6 +68,7 @@ def _title(info: RunInfo, summary: dict[str, Any]) -> list[str]:
         f"- Fecha: {info.timestamp}",
         f"- Dataset: `{info.dataset}` ({summary['cases']} casos)",
         f"- Pausa entre requests: {info.sleep_s} s",
+        f"- Guardrails: {'activados' if info.guardrails else 'desactivados (--no-guardrails)'}",
     ]
 
 

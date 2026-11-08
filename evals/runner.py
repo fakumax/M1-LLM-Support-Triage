@@ -35,6 +35,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--prompt", default=defaults["prompt_version"], help="versión del prompt, por ejemplo v1")
     parser.add_argument("--limit", type=int, help="evalúa solo los primeros N casos; no guarda reportes")
     parser.add_argument("--sleep", type=float, help="segundos entre requests (por defecto, según el proveedor)")
+    parser.add_argument("--no-guardrails", action="store_true", help="desactiva los guardrails de entrada y salida")
     args = parser.parse_args(argv)
     if args.limit is not None and args.limit < 1:
         parser.error("--limit tiene que ser al menos 1")
@@ -50,11 +51,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     started = datetime.now()
     try:
-        deps = build_triage_deps(args.provider, args.model, args.prompt)
+        deps = build_triage_deps(args.provider, args.model, args.prompt, with_guardrails=not args.no_guardrails)
         _require_free_model(deps.provider.name, deps.provider.model)
         sleep_s = _sleep_s(deps.provider.name, args.sleep)
         cases = load_dataset(DATASET_FILE)[: args.limit]
-        base = result_base(started, deps.provider.name, deps.provider.model, deps.prompt.version)
+        base = result_base(
+            started, deps.provider.name, deps.provider.model, deps.prompt.version, deps.guardrails is not None
+        )
         if args.limit is None and (RESULTS_DIR / f"{base}.json").exists():
             raise EvalError(f"ya existe el reporte {base}.json; esperá un minuto y volvé a correr")
         outcomes = run_cases(cases, deps, sleep_s)
@@ -68,6 +71,7 @@ def main(argv: list[str] | None = None) -> int:
         prompt_version=deps.prompt.version,
         dataset=DATASET_FILE.relative_to(ROOT_DIR).as_posix(),
         sleep_s=sleep_s,
+        guardrails=deps.guardrails is not None,
     )
     summary = summarize(outcomes)
     markdown = render_markdown(info, summary, outcomes)
@@ -111,9 +115,10 @@ def run_cases(cases: list[dict[str, Any]], deps: TriageDeps, sleep_s: float) -> 
     return outcomes
 
 
-def result_base(started: datetime, provider: str, model: str, prompt_version: str) -> str:
+def result_base(started: datetime, provider: str, model: str, prompt_version: str, guardrails: bool) -> str:
     model_slug = re.sub(r"[^a-z0-9]+", "-", model.lower()).strip("-")
-    return f"{started:%Y%m%d-%H%M}_{provider}_{model_slug}_{prompt_version}"
+    suffix = "" if guardrails else "_sin-guardrails"
+    return f"{started:%Y%m%d-%H%M}_{provider}_{model_slug}_{prompt_version}{suffix}"
 
 
 def _outcome(case: dict[str, Any], result: TriageResult, record: dict[str, Any] | None) -> CaseOutcome:

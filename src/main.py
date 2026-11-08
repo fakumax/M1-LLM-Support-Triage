@@ -17,6 +17,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--provider", default=defaults["provider"], choices=sorted(PROVIDERS))
     parser.add_argument("--model", help="ID del modelo (por defecto, el de config/models.yaml)")
     parser.add_argument("--prompt", default=defaults["prompt_version"], help="versión del prompt, por ejemplo v1")
+    parser.add_argument("--no-guardrails", action="store_true", help="desactiva los guardrails de entrada y salida")
     return parser.parse_args(argv)
 
 
@@ -26,7 +27,7 @@ def main(argv: list[str] | None = None) -> int:
     load_env()
     args = parse_args(argv)
     try:
-        deps = build_triage_deps(args.provider, args.model, args.prompt)
+        deps = build_triage_deps(args.provider, args.model, args.prompt, with_guardrails=not args.no_guardrails)
         result, _ = triage_and_register(args.query, deps, source="cli")
     except (ProviderError, TriageError, PromptError) as error:
         print(f"Error: {error}", file=sys.stderr)

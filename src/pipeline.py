@@ -19,17 +19,20 @@ class TriageDeps:
     guardrails: Guardrails | None = None
 
 
-def build_triage_deps(provider_name: str, model: str | None, prompt_version: str) -> TriageDeps:
+def build_triage_deps(
+    provider_name: str, model: str | None, prompt_version: str, with_guardrails: bool = True
+) -> TriageDeps:
     config = load_models_config()
     return TriageDeps(
         provider=get_provider(provider_name, model),
         prompt=load_prompt(prompt_version),
         max_parse_retries=config["defaults"]["max_parse_retries"],
-        guardrails=Guardrails(
-            canary=config["guardrails"]["canary"],
-            max_query_chars=config["guardrails"]["max_query_chars"],
-        ),
+        guardrails=_guardrails(config["guardrails"]) if with_guardrails else None,
     )
+
+
+def _guardrails(settings: dict[str, Any]) -> Guardrails:
+    return Guardrails(canary=settings["canary"], max_query_chars=settings["max_query_chars"])
 
 
 def triage_and_register(query: str, deps: TriageDeps, source: str) -> tuple[TriageResult, dict[str, Any] | None]:
