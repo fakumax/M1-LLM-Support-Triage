@@ -33,6 +33,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--provider", default=defaults["provider"], choices=sorted(PROVIDERS))
     parser.add_argument("--model", help="ID del modelo (por defecto, el de config/models.yaml)")
     parser.add_argument("--prompt", default=defaults["prompt_version"], help="versión del prompt, por ejemplo v1")
+    parser.add_argument("--dataset", type=Path, default=DATASET_FILE, help="dataset JSONL a evaluar")
     parser.add_argument("--limit", type=int, help="evalúa solo los primeros N casos; no guarda reportes")
     parser.add_argument("--sleep", type=float, help="segundos entre requests (por defecto, según el proveedor)")
     parser.add_argument("--no-guardrails", action="store_true", help="desactiva los guardrails de entrada y salida")
@@ -54,9 +55,15 @@ def main(argv: list[str] | None = None) -> int:
         deps = build_triage_deps(args.provider, args.model, args.prompt, with_guardrails=not args.no_guardrails)
         _require_free_model(deps.provider.name, deps.provider.model)
         sleep_s = _sleep_s(deps.provider.name, args.sleep)
-        cases = load_dataset(DATASET_FILE)[: args.limit]
+        dataset = args.dataset.resolve()
+        cases = load_dataset(dataset)[: args.limit]
         base = result_base(
-            started, deps.provider.name, deps.provider.model, deps.prompt.version, deps.guardrails is not None
+            started,
+            deps.provider.name,
+            deps.provider.model,
+            deps.prompt.version,
+            deps.guardrails is not None,
+            dataset,
         )
         if args.limit is None and (RESULTS_DIR / f"{base}.json").exists():
             raise EvalError(f"ya existe el reporte {base}.json; esperá un minuto y volvé a correr")
@@ -69,7 +76,7 @@ def main(argv: list[str] | None = None) -> int:
         provider=deps.provider.name,
         model=deps.provider.model,
         prompt_version=deps.prompt.version,
-        dataset=DATASET_FILE.relative_to(ROOT_DIR).as_posix(),
+        dataset=_display_path(dataset),
         sleep_s=sleep_s,
         guardrails=deps.guardrails is not None,
     )
@@ -85,6 +92,8 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def load_dataset(path: Path) -> list[dict[str, Any]]:
+    if not path.is_file():
+        raise EvalError(f"no existe el dataset {_display_path(path)}")
     cases: list[dict[str, Any]] = []
     with path.open(encoding="utf-8") as file:
         for number, line in enumerate(file, start=1):
@@ -115,10 +124,20 @@ def run_cases(cases: list[dict[str, Any]], deps: TriageDeps, sleep_s: float) -> 
     return outcomes
 
 
-def result_base(started: datetime, provider: str, model: str, prompt_version: str, guardrails: bool) -> str:
+def result_base(
+    started: datetime, provider: str, model: str, prompt_version: str, guardrails: bool, dataset: Path
+) -> str:
     model_slug = re.sub(r"[^a-z0-9]+", "-", model.lower()).strip("-")
-    suffix = "" if guardrails else "_sin-guardrails"
-    return f"{started:%Y%m%d-%H%M}_{provider}_{model_slug}_{prompt_version}{suffix}"
+    dataset_tag = "" if dataset == DATASET_FILE else f"_{dataset.stem}"
+    guardrails_tag = "" if guardrails else "_sin-guardrails"
+    return f"{started:%Y%m%d-%H%M}_{provider}_{model_slug}_{prompt_version}{dataset_tag}{guardrails_tag}"
+
+
+def _display_path(path: Path) -> str:
+    try:
+        return path.relative_to(ROOT_DIR).as_posix()
+    except ValueError:
+        return str(path)
 
 
 def _outcome(case: dict[str, Any], result: TriageResult, record: dict[str, Any] | None) -> CaseOutcome:
