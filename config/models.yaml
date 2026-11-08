@@ -13,6 +13,7 @@ providers:
     api_key_env: OPENROUTER_API_KEY
     base_url: https://openrouter.ai/api/v1
     default_model: nvidia/nemotron-3.5-super-vl:free
+    eval_sleep_s: 3.2
     models:
       "nvidia/nemotron-3.5-super-vl:free":
         price_in_per_mtok: 0
@@ -28,6 +29,7 @@ providers:
   gemini:
     api_key_env: GEMINI_API_KEY
     default_model: gemini-3.5-flash-lite
+    eval_sleep_s: 4.5
     models:
       gemini-3.5-flash-lite:
         price_in_per_mtok: 0

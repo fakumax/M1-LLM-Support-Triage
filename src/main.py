@@ -3,11 +3,11 @@ import json
 import sys
 
 from src.config import load_env, load_models_config
-from src.metrics import METRICS_FILE, MetricsError, append_metrics, build_record
-from src.prompts import PromptError, load_prompt
-from src.providers import PROVIDERS, get_provider
+from src.pipeline import build_triage_deps, triage_and_register
+from src.prompts import PromptError
+from src.providers import PROVIDERS
 from src.providers.base import ProviderError
-from src.triage import TriageError, TriageResult, triage
+from src.triage import TriageError
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -26,31 +26,15 @@ def main(argv: list[str] | None = None) -> int:
     load_env()
     args = parse_args(argv)
     try:
-        provider = get_provider(args.provider, args.model)
-        prompt = load_prompt(args.prompt)
-        result = triage(args.query, provider, prompt, load_models_config()["defaults"]["max_parse_retries"])
+        deps = build_triage_deps(args.provider, args.model, args.prompt)
+        result, _ = triage_and_register(args.query, deps, source="cli")
     except (ProviderError, TriageError, PromptError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 1
-    _register_metrics(result, prompt.version)
     if result.fallback:
         print("Aviso: no se pudo procesar automáticamente; la consulta queda para un agente humano.", file=sys.stderr)
     print(json.dumps(result.response.model_dump(), ensure_ascii=False, indent=2))
     return 0
-
-
-def _register_metrics(result: TriageResult, prompt_version: str) -> None:
-    try:
-        record = build_record(result, source="cli", prompt_version=prompt_version)
-        append_metrics(record, METRICS_FILE)
-    except MetricsError as error:
-        print(f"Aviso: no se registraron las métricas: {error}", file=sys.stderr)
-        return
-    if record["cost_usd"] is None:
-        print(
-            f"Aviso: {result.model} no tiene precio en config/models.yaml; cost_usd queda en null",
-            file=sys.stderr,
-        )
 
 
 if __name__ == "__main__":

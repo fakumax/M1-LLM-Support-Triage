@@ -23,6 +23,7 @@ class TriageResult:
     reported_cost_usd: float | None
     latency_s: float
     attempts: int
+    invalid_responses: int = 0
     fallback: bool = False
     guardrail: str | None = None
 
@@ -33,6 +34,7 @@ class _Usage:
     completion_tokens: int = 0
     reported_cost_usd: float | None = None
     attempts: int = 0
+    invalid_responses: int = 0
 
     def add(self, llm: LLMResponse) -> None:
         self.prompt_tokens += llm.prompt_tokens
@@ -59,6 +61,7 @@ def triage(query: str, provider: LLMProvider, prompt: Prompt, max_parse_retries:
         try:
             response = parse_support_response(llm.text)
         except InvalidResponseError as error:
+            usage.invalid_responses += 1
             messages = [*messages, *_correction_turn(llm.text, error)]
             continue
         return _result(response, provider, usage, started, fallback=False)
@@ -103,5 +106,6 @@ def _result(
         reported_cost_usd=usage.reported_cost_usd,
         latency_s=round(time.perf_counter() - started, 3),
         attempts=usage.attempts,
+        invalid_responses=usage.invalid_responses,
         fallback=fallback,
     )
