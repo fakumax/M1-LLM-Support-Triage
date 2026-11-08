@@ -31,6 +31,8 @@ def main(argv: list[str] | None = None) -> int:
     except (ProviderError, TriageError, PromptError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 1
+    if result.guardrail:
+        print(f"Aviso: guardrails activados: {', '.join(result.guardrail)}", file=sys.stderr)
     if result.fallback:
         print("Aviso: no se pudo procesar automáticamente; la consulta queda para un agente humano.", file=sys.stderr)
     print(json.dumps(result.response.model_dump(), ensure_ascii=False, indent=2))

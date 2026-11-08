@@ -32,3 +32,15 @@ class SupportResponse(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
     category: Category
     actions: list[str] = Field(min_length=1)
+
+
+FALLBACK_ANSWER = "No pudimos procesar tu consulta automáticamente. Un agente de soporte la va a revisar."
+
+
+def fallback_response() -> SupportResponse:
+    return SupportResponse(
+        answer=FALLBACK_ANSWER,
+        confidence=0.0,
+        category="other",
+        actions=["derivar_a_agente_humano"],
+    )

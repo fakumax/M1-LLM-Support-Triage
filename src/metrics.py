@@ -82,7 +82,7 @@ def build_record(result: TriageResult, source: str, prompt_version: str) -> dict
         "attempts": result.attempts,
         "fallback": result.fallback,
         "category": result.response.category,
-        "guardrail": result.guardrail,
+        "guardrail": list(result.guardrail) if result.guardrail else None,
     }
 
 

@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from src.config import load_models_config
+from src.guardrails import Guardrails
 from src.metrics import METRICS_FILE, MetricsError, append_metrics, build_record
 from src.prompts import Prompt, load_prompt
 from src.providers import get_provider
@@ -15,18 +16,21 @@ class TriageDeps:
     provider: LLMProvider
     prompt: Prompt
     max_parse_retries: int
+    guardrails: Guardrails | None = None
 
 
 def build_triage_deps(provider_name: str, model: str | None, prompt_version: str) -> TriageDeps:
+    config = load_models_config()
     return TriageDeps(
         provider=get_provider(provider_name, model),
         prompt=load_prompt(prompt_version),
-        max_parse_retries=load_models_config()["defaults"]["max_parse_retries"],
+        max_parse_retries=config["defaults"]["max_parse_retries"],
+        guardrails=Guardrails(max_query_chars=config["guardrails"]["max_query_chars"]),
     )
 
 
 def triage_and_register(query: str, deps: TriageDeps, source: str) -> tuple[TriageResult, dict[str, Any] | None]:
-    result = triage(query, deps.provider, deps.prompt, deps.max_parse_retries)
+    result = triage(query, deps.provider, deps.prompt, deps.max_parse_retries, deps.guardrails)
     try:
         record = build_record(result, source=source, prompt_version=deps.prompt.version)
         append_metrics(record, METRICS_FILE)
