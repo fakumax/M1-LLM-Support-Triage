@@ -37,6 +37,9 @@ ROLEPLAY = (
     r"(?:act[uú][aá]\s+como|hac[eé]te\s+pasar\s+por|fing[ií]\s+ser|finge\s+ser|pretend\s+to\s+be|act\s+as"
     r"|you\s+are\s+now|ahora\s+(?:sos|eres)|eres\s+ahora|agora\s+voc[eê])"
 )
+SELF_HARM_INTENT = (
+    r"(?:quiero|quiere|quieren|quisiera|voy\s+a|vas\s+a|va\s+a|van\s+a|pienso\s+en|piensa\s+en|piensan\s+en)"
+)
 
 
 class Risk(Enum):
@@ -96,10 +99,15 @@ INPUT_RULES: tuple[Rule, ...] = (
     _rule(
         "self_harm",
         Risk.HIGH,
-        r"\bme\s+(?:quiero|voy\s+a|pienso\s+en|quisiera)\s+(?:matar|suicidar|morir)\w*"
-        r"|\b(?:quiero|quisiera|voy\s+a|pienso\s+en)\s+(?:suicidarme|matarme|morirme|quitarme\s+la\s+vida"
-        r"|hacerme\s+da[ñn]o)\b|\bquiero\s+morir\b|\b(?:kill|hurt|end)\s+(?:myself|my\s+life)\b"
-        r"|\b(?:quero|vou)\s+me\s+matar\b",
+        rf"\b(?:me\s+(?:quiero|voy\s+a|pienso\s+en|quisiera)|se\s+(?:quiere|quieren|va\s+a|van\s+a|piensa\s+en"
+        rf"|piensan\s+en|quisiera))\s+matar\b(?!\s+(?:el|la|los|las|un|una|del|al)\b)"
+        rf"|{SELF_HARM_INTENT}\s+(?:matarse|matarme|suicidar(?:se|me)?|quitar(?:se|me)\s+la\s+vida|morir(?:se|me)?"
+        r"|hacer(?:se|me)\s+da[ñn]o)\b"
+        r"|\b(?:kill|hurt|end)\s+(?:myself|my\s+life|(?:him|her|them)(?:self|selves)|(?:his|her|their)\s+life)\b"
+        r"|\bcommit\s+suicide\b"
+        r"|\b(?:quer|querem|vai|vão)\s+se\s+(?:matar|suicidar)\b|\b(?:quero|vou)\s+me\s+(?:matar|suicidar)\b"
+        r"|\b(?:quer|quero|querem|vai|vou|vão)\s+suicidar(?:-se)?\b"
+        r"|\b(?:quer|quero|querem|vai|vou|vão)\s+tirar\s+(?:a\s+)?(?:própria|propria|sua)\s+vida\b",
     ),
     _rule(
         "prompt_reveal",
