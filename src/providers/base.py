@@ -26,6 +26,7 @@ class ProviderSettings:
     max_tokens: int
     timeout_s: float
     max_api_retries: int
+    max_retry_after_s: float
 
 
 class ProviderError(Exception):
@@ -48,15 +49,16 @@ class LLMProvider(ABC):
         ...
 
 
-def backoff_delay(attempt: int, retry_after_s: float | None = None) -> float:
+def backoff_delay(attempt: int, max_retry_after_s: float, retry_after_s: float | None = None) -> float:
     if retry_after_s is not None:
-        return retry_after_s
+        return min(retry_after_s, max_retry_after_s)
     return float(2**attempt)
 
 
 def call_with_backoff(
     call: Callable[[], LLMResponse],
     max_api_retries: int,
+    max_retry_after_s: float,
     sleep: Callable[[float], None] = time.sleep,
 ) -> LLMResponse:
     attempt = 0
@@ -67,7 +69,7 @@ def call_with_backoff(
             if attempt >= max_api_retries:
                 error.attempts = attempt + 1
                 raise
-            sleep(backoff_delay(attempt, error.retry_after_s))
+            sleep(backoff_delay(attempt, max_retry_after_s, error.retry_after_s))
             attempt += 1
         else:
             return replace(response, attempts=attempt + 1)

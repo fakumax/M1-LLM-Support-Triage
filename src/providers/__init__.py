@@ -27,5 +27,6 @@ def get_provider(name: str, model: str | None = None) -> LLMProvider:
         max_tokens=defaults["max_tokens"],
         timeout_s=defaults["timeout_s"],
         max_api_retries=defaults["max_api_retries"],
+        max_retry_after_s=defaults["max_retry_after_s"],
     )
     return PROVIDERS[name](settings)

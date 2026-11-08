@@ -32,6 +32,7 @@ class OpenRouterProvider(LLMProvider):
         return call_with_backoff(
             lambda: self._send(system, messages, json_schema),
             self._settings.max_api_retries,
+            self._settings.max_retry_after_s,
         )
 
     def _send(self, system: str, messages: list[dict[str, str]], json_schema: dict[str, Any]) -> LLMResponse:
