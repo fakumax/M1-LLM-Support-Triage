@@ -1,0 +1,1114 @@
+{
+  "run": {
+    "timestamp": "2026-11-08T15:09:05",
+    "provider": "openrouter",
+    "model": "nvidia/nemotron-3.5-super-vl:free",
+    "prompt_version": "v3",
+    "dataset": "evals/dataset.jsonl",
+    "sleep_s": 3.2
+  },
+  "summary": {
+    "cases": 44,
+    "correct": 44,
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "per_category": {
+      "billing": {
+        "true_positive": 11,
+        "predicted": 11,
+        "support": 11,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "technical": {
+        "true_positive": 11,
+        "predicted": 11,
+        "support": 11,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "account": {
+        "true_positive": 11,
+        "predicted": 11,
+        "support": 11,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "other": {
+        "true_positive": 11,
+        "predicted": 11,
+        "support": 11,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      }
+    },
+    "confusion": {
+      "billing": {
+        "billing": 11,
+        "technical": 0,
+        "account": 0,
+        "other": 0
+      },
+      "technical": {
+        "billing": 0,
+        "technical": 11,
+        "account": 0,
+        "other": 0
+      },
+      "account": {
+        "billing": 0,
+        "technical": 0,
+        "account": 11,
+        "other": 0
+      },
+      "other": {
+        "billing": 0,
+        "technical": 0,
+        "account": 0,
+        "other": 11
+      }
+    },
+    "contract": {
+      "valid_first_try": 44,
+      "valid_after_retry": 0,
+      "fallback": 0
+    },
+    "catalog": {
+      "answered_cases": 44,
+      "actions": 63,
+      "in_catalog": 63,
+      "outside_catalog": {},
+      "cases_with_outside": []
+    },
+    "calibration": {
+      "threshold": 0.8,
+      "high": {
+        "cases": 43,
+        "accuracy": 1.0
+      },
+      "low": {
+        "cases": 1,
+        "accuracy": 1.0
+      }
+    },
+    "latency_s": {
+      "mean": 5.157522727272727,
+      "p50": 4.39,
+      "p95": 11.794
+    },
+    "tokens": {
+      "prompt": 98546,
+      "completion": 18547,
+      "total": 117093
+    },
+    "cost_usd": {
+      "real_total": 0.0,
+      "list_total": 0.0240554,
+      "real_per_ticket": 0.0,
+      "list_per_ticket": 0.00054671,
+      "tickets_per_day": 400,
+      "real_per_day": 0.0,
+      "list_per_day": 0.21868545
+    },
+    "promises": {
+      "cases": 0,
+      "share": 0.0,
+      "ids": []
+    },
+    "fallback_ids": [],
+    "failed_ids": []
+  },
+  "cases": [
+    {
+      "id": "t001",
+      "query": "Buenas tardes. En el resumen de mi tarjeta aparece un cargo de Nubbix con el concepto 'servicios varios' y no sé a qué corresponde. Les pido que me expliquen el cobro.",
+      "answer": "Entendemos tu consulta. Vamos a revisar el cargo que figura en tu tarjeta y te explicamos a qué corresponde por este mismo canal.",
+      "expected": "billing",
+      "predicted": "billing",
+      "confidence": 0.9,
+      "actions": [
+        "explicar_cargos"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 3.328,
+      "prompt_tokens": 2252,
+      "completion_tokens": 181,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0004283,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t002",
+      "query": "se me colgó todo, no responde nada",
+      "answer": "Lamentamos que el sistema no responda. Para revisarlo, ¿nos contás qué estabas haciendo cuando se colgó y desde qué navegador o dispositivo lo usás?",
+      "expected": "technical",
+      "predicted": "technical",
+      "confidence": 0.8,
+      "actions": [
+        "revisar_logs_del_error",
+        "solicitar_capturas_o_pasos"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 3.677,
+      "prompt_tokens": 2214,
+      "completion_tokens": 253,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0004586,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t003",
+      "query": "no me llega el código de verificación en dos pasos al celular, ya pedí el reenvío tres veces y nada",
+      "answer": "Entendemos que no recibís el código de verificación en dos pasos. Para recuperar el acceso, un agente de soporte revisará tu caso y te responderá por este canal. ¿Podrías confirmarnos el número de celular que tenés registrado en Nubbix?",
+      "expected": "account",
+      "predicted": "account",
+      "confidence": 0.88,
+      "actions": [
+        "restablecer_acceso",
+        "verificar_identidad_del_titular"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 5.909,
+      "prompt_tokens": 2230,
+      "completion_tokens": 743,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.000706,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t004",
+      "query": "Buen día, ¿están atendiendo?",
+      "answer": "¡Hola! Sí, estamos atendiendo. ¿En qué podemos ayudarte hoy?",
+      "expected": "other",
+      "predicted": "other",
+      "confidence": 0.9,
+      "actions": [
+        "solicitar_mas_informacion"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 6.683,
+      "prompt_tokens": 2214,
+      "completion_tokens": 874,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0007691,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t005",
+      "query": "oigan me cobraron otra vez el plan pro, si ya lo habia pagado el mes pasado, ahorita tengo dos cargos iguales. Me lo regresan?",
+      "answer": "Entendemos que te aparecieron dos cargos iguales del plan Pro. Vamos a revisar el historial de pagos de tu cuenta para verificar si hubo un cobro duplicado, y un agente de soporte te responderá por este canal.",
+      "expected": "billing",
+      "predicted": "billing",
+      "confidence": 0.95,
+      "actions": [
+        "verificar_cobro_duplicado"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 6.094,
+      "prompt_tokens": 2239,
+      "completion_tokens": 605,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00063835,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t006",
+      "query": "DESDE ESTA MAÑANA LA IMPRESORA FISCAL DE LA CAJA NO IMPRIME. TENEMOS CLIENTES EN LA FILA.",
+      "answer": "Entendemos la urgencia. Vamos a revisar el error con la impresora fiscal. ¿Nos mandás una captura o describís qué mensaje aparece en pantalla?",
+      "expected": "technical",
+      "predicted": "technical",
+      "confidence": 0.85,
+      "actions": [
+        "revisar_logs_del_error",
+        "solicitar_capturas_o_pasos"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 5.086,
+      "prompt_tokens": 2244,
+      "completion_tokens": 553,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0006131,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t007",
+      "query": "olvide mi contrasña y el mail de recuperacion no me llega ni en spam",
+      "answer": "Entendemos que no te llega el mail de recuperación. Un agente de soporte revisa tu caso y te responde por este canal para ayudarte a recuperar el acceso.",
+      "expected": "account",
+      "predicted": "account",
+      "confidence": 0.9,
+      "actions": [
+        "restablecer_acceso"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 1.872,
+      "prompt_tokens": 2223,
+      "completion_tokens": 211,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00043895,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t008",
+      "query": "FELICIDADES!!! Ganaste 500 dólares en premios-express-ganador.com. Entrá ya para reclamarlos antes del viernes.",
+      "answer": "Gracias por escribirnos. Esa promoción no es de Nubbix. Si tenés alguna consulta sobre tu cuenta o nuestros servicios, respondemos por este canal.",
+      "expected": "other",
+      "predicted": "other",
+      "confidence": 0.95,
+      "actions": [
+        "derivar_a_agente_humano"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 3.933,
+      "prompt_tokens": 2239,
+      "completion_tokens": 541,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00060635,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t009",
+      "query": "NO ENTIENDO POR QUE ME COBRARON 3 USUARIOS EXTRA SI YO SOLO TENGO 5 CUPOS CONTRATADOS. REVISENLO YA, ESTO ES UN ROBO.",
+      "answer": "Entendemos tu preocupación. Vamos a revisar los cargos de usuarios en tu cuenta y te respondemos por este canal con lo que encontremos.",
+      "expected": "billing",
+      "predicted": "billing",
+      "confidence": 0.9,
+      "actions": [
+        "verificar_cobro_duplicado",
+        "explicar_cargos"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 2.613,
+      "prompt_tokens": 2259,
+      "completion_tokens": 228,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00045285,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t010",
+      "query": "Buenas tardes. Al intentar emitir una factura electrónica a uno de nuestros clientes, la DIAN devuelve un error de validación y la venta no se puede completar. Agradecemos su apoyo para resolverlo.",
+      "answer": "Lamentamos que la factura electrónica no se pueda emitir. Para revisar el error de la DIAN, ¿nos envías una captura del mensaje y el número de documento del cliente? Un agente de soporte técnico revisará el caso y te responderá por este canal.",
+      "expected": "technical",
+      "predicted": "technical",
+      "confidence": 0.95,
+      "actions": [
+        "revisar_logs_del_error",
+        "solicitar_capturas_o_pasos"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 5.449,
+      "prompt_tokens": 2252,
+      "completion_tokens": 675,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0006753,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t011",
+      "query": "Buenas tardes. Necesito transferir la titularidad de la cuenta a otra persona de la empresa, porque quien figura como titular ya no forma parte de ella. ¿Qué trámite tenemos que seguir?",
+      "answer": "Entendemos que necesitas cambiar la titularidad de la cuenta. Para iniciar el trámite, primero verificamos la identidad del titular actual y luego actualizamos los datos de la nueva persona. Un agente de soporte te guiará por este canal.",
+      "expected": "account",
+      "predicted": "account",
+      "confidence": 0.7,
+      "actions": [
+        "verificar_identidad_del_titular",
+        "actualizar_datos_de_la_cuenta"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 8.14,
+      "prompt_tokens": 2248,
+      "completion_tokens": 730,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0007022,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t012",
+      "query": "¿sabes qué tiempo va a hacer mañana en Mendoza? me voy de viaje y no sé si llevar abrigo",
+      "answer": "Hola. Soy el asistente de soporte de Nubbix y no puedo consultar el clima. Si tenés alguna consulta sobre tu cuenta o el uso de Nubbix, quedo a disposición.",
+      "expected": "other",
+      "predicted": "other",
+      "confidence": 0.95,
+      "actions": [
+        "derivar_a_agente_humano"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 23.458,
+      "prompt_tokens": 2229,
+      "completion_tokens": 329,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00049885,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t013",
+      "query": "me cobraron de mas",
+      "answer": "Lamentamos que te haya pasado eso. Un agente de soporte revisará el cobro y te responderá por este canal. Si tenés a mano la fecha y el monto del cargo, mandanoslo para agilizar.",
+      "expected": "billing",
+      "predicted": "billing",
+      "confidence": 0.85,
+      "actions": [
+        "derivar_a_agente_humano"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 8.283,
+      "prompt_tokens": 2210,
+      "completion_tokens": 927,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.000795,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t014",
+      "query": "la sincronizacion del inventario con mi tienda online se cayo hace 2 dias, los productos nuevos no aparecen ya",
+      "answer": "Lamentamos que la sincronización no esté funcionando. Vamos a revisar el estado de la integración con tu tienda online; ¿nos dices con qué plataforma está conectada?",
+      "expected": "technical",
+      "predicted": "technical",
+      "confidence": 0.92,
+      "actions": [
+        "verificar_estado_de_integracion",
+        "solicitar_capturas_o_pasos"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 3.812,
+      "prompt_tokens": 2231,
+      "completion_tokens": 317,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00049315,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t015",
+      "query": "quiero que mi empleada de caja deje de ver el módulo de reportes, cómo le saco ese permiso?",
+      "answer": "Con gusto te ayudamos a ajustar los permisos de tu empleada. ¿Nos confirmas el nombre o email de su usuario en Nubbix para hacer el cambio?",
+      "expected": "account",
+      "predicted": "account",
+      "confidence": 0.9,
+      "actions": [
+        "gestionar_usuarios_y_permisos"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 1.599,
+      "prompt_tokens": 2230,
+      "completion_tokens": 139,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.000404,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t016",
+      "query": "Buenas. ¿Tienen algún plan pensado para estudios contables que administran varias empresas de sus clientes? Quisiera saber qué incluye.",
+      "answer": "Gracias por la consulta. Esa pregunta la responde el equipo comercial, que te contará qué opciones hay para administrar varias empresas desde un estudio contable.",
+      "expected": "other",
+      "predicted": "other",
+      "confidence": 0.95,
+      "actions": [
+        "derivar_a_ventas"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 1.771,
+      "prompt_tokens": 2233,
+      "completion_tokens": 206,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00043795,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t017",
+      "query": "Buenas. Hace cuatro años que uso Nubbix con el plan básico. Este mes me llegó un cargo bastante más alto que el de siempre, y en el correo no explican por qué subió. Nadie me avisó de ningún cambio de precio. Necesito que me digan el motivo del aumento y, si no me avisaron como corresponde, que lo corrijan en este cobro.",
+      "answer": "Entendemos tu preocupación. Vamos a revisar el cobro de este mes y el plan que tenés contratado, y te respondemos por este canal con el detalle del cargo.",
+      "expected": "billing",
+      "predicted": "billing",
+      "confidence": 0.85,
+      "actions": [
+        "explicar_cargos"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 6.579,
+      "prompt_tokens": 2291,
+      "completion_tokens": 401,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00054415,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t018",
+      "query": "Desde la actualización de la semana pasada, el reporte de ventas por producto tarda más de 15 minutos en cargar y a veces se queda en blanco. Antes tardaba unos segundos. Tenemos cuatro sucursales y cerramos caja todos los días antes de las 22 hs, así que estamos haciendo el cierre a mano. Lo probamos en dos navegadores y pasa igual, así que no es nuestra PC.",
+      "answer": "Lamentamos que el reporte esté lento y afecte los cierres de caja. Vamos a revisar los registros del error; si pueden, envíen una captura de la pantalla en blanco y el producto que estaban consultando. Un agente de soporte técnico revisará el caso y les responderá por este canal.",
+      "expected": "technical",
+      "predicted": "technical",
+      "confidence": 0.9,
+      "actions": [
+        "revisar_logs_del_error",
+        "solicitar_capturas_o_pasos",
+        "escalar_a_soporte_tecnico_n2"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 4.697,
+      "prompt_tokens": 2294,
+      "completion_tokens": 466,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0005771,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t019",
+      "query": "NECESITO DAR DE BAJA A UN USUARIO QUE RENUNCIÓ HOY POR LA MAÑANA. YA NO DEBE TENER ACCESO A NADA.",
+      "answer": "Entendido, gestionamos la baja de ese usuario para que ya no tenga acceso. Mándanos el correo o nombre del usuario y lo procesamos por este canal.",
+      "expected": "account",
+      "predicted": "account",
+      "confidence": 0.95,
+      "actions": [
+        "gestionar_usuarios_y_permisos"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 1.278,
+      "prompt_tokens": 2250,
+      "completion_tokens": 132,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0004035,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t020",
+      "query": "Somos una distribuidora con 3 locales. ¿Hacen algún precio especial si pagamos el año completo de una vez?",
+      "answer": "Gracias por escribirnos. Esa consulta la atiende el equipo comercial, que te va a informar sobre opciones de pago y planes para tu distribuidora.",
+      "expected": "other",
+      "predicted": "other",
+      "confidence": 0.95,
+      "actions": [
+        "derivar_a_ventas"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 6.984,
+      "prompt_tokens": 2232,
+      "completion_tokens": 162,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0004158,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t021",
+      "query": "My card was declined when the plan renewed. Can I pay this month by bank transfer instead? I'd like to avoid another failed charge.",
+      "answer": "Entendemos que la tarjeta fue rechazada al renovar el plan. Un agente revisará si se puede cambiar el medio de pago a transferencia bancaria y te responderá por este canal.",
+      "expected": "billing",
+      "predicted": "billing",
+      "confidence": 0.9,
+      "actions": [
+        "actualizar_medio_de_pago"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 6.801,
+      "prompt_tokens": 2232,
+      "completion_tokens": 281,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0004753,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t022",
+      "query": "¡Hace tres días que no puedo facturar porque el punto de venta no abre! Y encima me cobraron el mes completo. Esto es un abuso, quiero que me devuelvan la plata de los días sin servicio.",
+      "answer": "Lamentamos que el punto de venta no abra. Vamos a revisar el error técnico para que puedas facturar nuevamente. Sobre el cobro, un agente de soporte revisa tu caso y te responde por este canal.",
+      "expected": "technical",
+      "predicted": "technical",
+      "confidence": 0.9,
+      "actions": [
+        "revisar_logs_del_error",
+        "solicitar_capturas_o_pasos",
+        "escalar_a_soporte_tecnico_n2"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 3.891,
+      "prompt_tokens": 2251,
+      "completion_tokens": 555,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00061515,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t023",
+      "query": "no recuerdo la clave",
+      "answer": "No te preocupes, usá la opción de recuperación de contraseña en el ingreso. Si no te llega el mail o seguís sin poder entrar, respondé este mensaje y lo revisamos.",
+      "expected": "account",
+      "predicted": "account",
+      "confidence": 0.95,
+      "actions": [
+        "restablecer_acceso"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 1.287,
+      "prompt_tokens": 2209,
+      "completion_tokens": 121,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00039185,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t024",
+      "query": "Quiero felicitar al equipo, el nuevo panel de inventario está muy bien hecho. Gracias!",
+      "answer": "¡Gracias por tus palabras! Le haremos llegar tu felicitación al equipo de producto.",
+      "expected": "other",
+      "predicted": "other",
+      "confidence": 0.95,
+      "actions": [
+        "derivar_a_agente_humano"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 4.072,
+      "prompt_tokens": 2224,
+      "completion_tokens": 488,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0005776,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t025",
+      "query": "oye, quiero cambiar la tarjeta con la que me cobran Nubbix, la anterior ya no existe po",
+      "answer": "Claro, te ayudamos a cambiar la tarjeta de pago. Mándanos los datos de la nueva tarjeta por este canal y lo actualizamos en tu cuenta.",
+      "expected": "billing",
+      "predicted": "billing",
+      "confidence": 0.95,
+      "actions": [
+        "actualizar_medio_de_pago"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 1.299,
+      "prompt_tokens": 2230,
+      "completion_tokens": 130,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0003995,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t026",
+      "query": "desde ayer la conciliación con el banco no trae los movimientos nuevos, en caja las transferencias no aparecen y tengo que cargarlas a mano",
+      "answer": "Lamentamos que la conciliación no esté trayendo los movimientos. Vamos a revisar la sincronización con tu banco; ¿nos indicás con qué entidad bancaria tenés la integración activa?",
+      "expected": "technical",
+      "predicted": "technical",
+      "confidence": 0.9,
+      "actions": [
+        "verificar_estado_de_integracion",
+        "solicitar_capturas_o_pasos"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 2.736,
+      "prompt_tokens": 2236,
+      "completion_tokens": 286,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0004784,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t027",
+      "query": "Ya van cuatro veces que pido que saquen de la cuenta a un usuario que no trabaja acá hace meses y nadie lo hace. Así no se puede trabajar po.",
+      "answer": "Entendemos la urgencia. Vamos a gestionar la baja de ese usuario y te respondemos por este canal cuando esté hecho.",
+      "expected": "account",
+      "predicted": "account",
+      "confidence": 0.9,
+      "actions": [
+        "gestionar_usuarios_y_permisos"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 4.414,
+      "prompt_tokens": 2239,
+      "completion_tokens": 284,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00047785,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t028",
+      "query": "Necesitamos una cotización para 12 usuarios de un estudio contable, con facturación electrónica y punto de venta para dos cajas. Por favor indiquen el precio mensual, si incluye capacitación y en cuánto tiempo pueden empezar.",
+      "answer": "Gracias por tu consulta. El equipo comercial te enviará la cotización con los precios, la capacitación y los tiempos de inicio para tu estudio contable.",
+      "expected": "other",
+      "predicted": "other",
+      "confidence": 0.95,
+      "actions": [
+        "derivar_a_ventas"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 1.951,
+      "prompt_tokens": 2260,
+      "completion_tokens": 160,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.000419,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t029",
+      "query": "Buenos días. Realicé la transferencia de la suscripción de septiembre el 2 de noviembre, pero en la plataforma el pago figura como pendiente. Envío el comprobante por este medio para que lo registren.",
+      "answer": "Gracias por enviarnos el comprobante. Un agente de soporte revisará el pago y te responderá por este canal para confirmar si se acreditó correctamente.",
+      "expected": "billing",
+      "predicted": "billing",
+      "confidence": 0.85,
+      "actions": [
+        "derivar_a_agente_humano"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 5.821,
+      "prompt_tokens": 2252,
+      "completion_tokens": 661,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0006683,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t030",
+      "query": "Não consigo entrar no sistema. Depois de digitar a senha, a tela fica branca e aparece 'erro interno do servidor'.",
+      "answer": "Lamentamos el problema al ingresar. Vamos a revisar el error interno que aparece en la pantalla; si puedes, envíanos una captura de pantalla y el navegador que usas.",
+      "expected": "technical",
+      "predicted": "technical",
+      "confidence": 0.9,
+      "actions": [
+        "revisar_logs_del_error",
+        "solicitar_capturas_o_pasos"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 6.887,
+      "prompt_tokens": 2231,
+      "completion_tokens": 610,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00063965,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t031",
+      "query": "Buenas tardes. Estamos cerrando la sucursal de Rosario y necesitamos dar de baja la cuenta completa de la empresa, que todavía tiene dos usuarios activos. ¿Qué pasos tenemos que seguir para hacerlo?",
+      "answer": "Entendido. Para dar de baja la cuenta completa y gestionar los usuarios activos, un agente de soporte te guiará por los pasos y te responderá por este canal.",
+      "expected": "account",
+      "predicted": "account",
+      "confidence": 0.9,
+      "actions": [
+        "gestionar_usuarios_y_permisos"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 3.74,
+      "prompt_tokens": 2248,
+      "completion_tokens": 344,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0005092,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t032",
+      "query": "Cuánto me cobrarían por agregar el módulo de inventario a mi plan?",
+      "answer": "Gracias por la consulta. Esa pregunta la responde el equipo comercial, que te pasará la información sobre el módulo de inventario y su costo.",
+      "expected": "other",
+      "predicted": "other",
+      "confidence": 0.95,
+      "actions": [
+        "derivar_a_ventas"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 1.941,
+      "prompt_tokens": 2223,
+      "completion_tokens": 195,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00043095,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t033",
+      "query": "Hola, ¿cuánto me sale por mes el plan que tengo contratado? Lo necesito para cerrar el presupuesto del año.",
+      "answer": "Te ayudamos a confirmar el costo mensual de tu plan actual. Un agente de soporte revisa tu cuenta y te responde por este canal con el detalle.",
+      "expected": "billing",
+      "predicted": "billing",
+      "confidence": 0.9,
+      "actions": [
+        "explicar_cargos"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 2.86,
+      "prompt_tokens": 2232,
+      "completion_tokens": 342,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0005058,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t034",
+      "query": "Buenas. Desde esta mañana, al emitir comprobantes en el punto de venta, el sistema informa error de conexión con ARCA y las facturas quedan sin CAE. ¿Nos confirman si hay una interrupción del servicio?",
+      "answer": "Lamentamos el problema con los comprobantes. Vamos a revisar el estado de la conexión con ARCA y te respondemos por este canal. ¿Nos mandás una captura del error y el horario aproximado en que ocurrió?",
+      "expected": "technical",
+      "predicted": "technical",
+      "confidence": 0.92,
+      "actions": [
+        "verificar_estado_de_integracion",
+        "solicitar_capturas_o_pasos"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 3.213,
+      "prompt_tokens": 2253,
+      "completion_tokens": 431,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00055345,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t035",
+      "query": "¿cómo hago para cerrar la sesión en todos los dispositivos? Creo que alguien entró con mi usuario desde otra ciudad",
+      "answer": "Entendemos la preocupación. Vamos a revisar las sesiones activas de tu cuenta y a restablecer el acceso para que solo vos puedas entrar. Para hacerlo, primero necesitamos verificar tu identidad como titular.",
+      "expected": "account",
+      "predicted": "account",
+      "confidence": 0.85,
+      "actions": [
+        "restablecer_acceso",
+        "verificar_identidad_del_titular"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 4.39,
+      "prompt_tokens": 2231,
+      "completion_tokens": 351,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00051015,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t036",
+      "query": "NECESITO QUE ME RECOMIENDEN UN ABOGADO LABORAL PARA UN DESPIDO DE MI EMPLEADO",
+      "answer": "Esa consulta está fuera de lo que podemos atender en Nubbix. Te recomendamos contactar directamente con un profesional del área legal.",
+      "expected": "other",
+      "predicted": "other",
+      "confidence": 0.95,
+      "actions": [
+        "derivar_a_agente_humano"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 4.447,
+      "prompt_tokens": 2241,
+      "completion_tokens": 493,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00058265,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t037",
+      "query": "Buenas. La factura CFDI que me emitió Nubbix por la suscripción de este mes tiene mal mi RFC. ¿Pueden cancelarla y volver a emitirla con los datos correctos?",
+      "answer": "Entendido. Vamos a revisar la factura de este mes y a gestionar la corrección de tu RFC. Para reemitirla, ¿nos confirmás cuál es el RFC correcto? Te respondemos por este canal cuando esté lista.",
+      "expected": "billing",
+      "predicted": "billing",
+      "confidence": 0.9,
+      "actions": [
+        "solicitar_mas_informacion",
+        "reenviar_factura"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 11.794,
+      "prompt_tokens": 2248,
+      "completion_tokens": 795,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0007347,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t038",
+      "query": "hola, cuando emito la boleta electrónica al SII me sale 'timbre no válido' hace una hora y no puedo vender",
+      "answer": "Lamentamos que no puedas emitir boletas. Vamos a revisar el error del timbre; por favor, envíanos una captura de pantalla del mensaje y el código del comprobante que intentaste emitir.",
+      "expected": "technical",
+      "predicted": "technical",
+      "confidence": 0.9,
+      "actions": [
+        "revisar_logs_del_error",
+        "solicitar_capturas_o_pasos",
+        "escalar_a_soporte_tecnico_n2"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 12.547,
+      "prompt_tokens": 2235,
+      "completion_tokens": 383,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00052675,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t039",
+      "query": "Desde ayer me aparece 'no tenés permisos' en el módulo de caja, pero ni yo ni el admin tocamos nada. ¿Me pueden revisar esto?",
+      "answer": "Entendemos el problema. Vamos a revisar los permisos de tu usuario en el módulo de caja y te respondemos por este canal.",
+      "expected": "account",
+      "predicted": "account",
+      "confidence": 0.85,
+      "actions": [
+        "gestionar_usuarios_y_permisos"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 4.443,
+      "prompt_tokens": 2240,
+      "completion_tokens": 479,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0005755,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t040",
+      "query": "Oigan, ¿Nubbix sirve para un restaurante con delivery propio? Estoy comparando sistemas.",
+      "answer": "Gracias por la consulta. Ese tipo de preguntas las responde el equipo comercial, que te puede confirmar si Nubbix se adapta a un restaurante con delivery propio.",
+      "expected": "other",
+      "predicted": "other",
+      "confidence": 0.9,
+      "actions": [
+        "derivar_a_ventas"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 2.622,
+      "prompt_tokens": 2226,
+      "completion_tokens": 201,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0004344,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t041",
+      "query": "Pagué la renovación el lunes y el sistema sigue sin reconocerlo, por eso no me deja facturar nada. Necesito que lo acrediten hoy, tenemos clientes esperando.",
+      "answer": "Entendemos la urgencia. Vamos a revisar el pago de la renovación y por qué aún no se refleja en el sistema; un agente te responderá por este canal.",
+      "expected": "billing",
+      "predicted": "billing",
+      "confidence": 0.85,
+      "actions": [
+        "derivar_a_agente_humano"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 10.559,
+      "prompt_tokens": 2242,
+      "completion_tokens": 1175,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.0009238,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t042",
+      "query": "Desde ayer, después de poner la contraseña, me sale error 503 y no entro.",
+      "answer": "Lamentamos que no puedas entrar. Ese error 503 es del sistema, no de tu contraseña. Vamos a revisar los registros de acceso y te respondemos por este canal.",
+      "expected": "technical",
+      "predicted": "technical",
+      "confidence": 0.9,
+      "actions": [
+        "revisar_logs_del_error"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 4.919,
+      "prompt_tokens": 2227,
+      "completion_tokens": 631,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00064955,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t043",
+      "query": "Buenas. Perdí el acceso al correo que figura como titular de la cuenta y no puedo recuperarla desde la web. Necesito que verifiquen mi identidad y me devuelvan el acceso. Gracias.",
+      "answer": "Entendemos la situación. Para devolverte el acceso, primero necesitamos verificar tu identidad; un agente de soporte te va a contactar por este canal para indicarte qué datos o documentos solicitar.",
+      "expected": "account",
+      "predicted": "account",
+      "confidence": 0.9,
+      "actions": [
+        "verificar_identidad_del_titular",
+        "restablecer_acceso"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 2.568,
+      "prompt_tokens": 2249,
+      "completion_tokens": 224,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00044935,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    },
+    {
+      "id": "t044",
+      "query": "Hola, somos tres empresas distintas (una tienda de ropa, un kiosco y una ferretería) con el mismo dueño. Queremos saber si conviene un plan único para las tres o contratar uno por empresa, y si el punto de venta se puede usar en dos cajas por local. Gracias por la ayuda.",
+      "answer": "Gracias por escribirnos. Esa consulta la atiende el equipo comercial, que te va a asesorar sobre la mejor opción para las tres empresas y el uso del punto de venta en varias cajas.",
+      "expected": "other",
+      "predicted": "other",
+      "confidence": 0.95,
+      "actions": [
+        "derivar_a_ventas"
+      ],
+      "fallback": false,
+      "attempts": 1,
+      "invalid_responses": 0,
+      "latency_s": 6.484,
+      "prompt_tokens": 2273,
+      "completion_tokens": 254,
+      "cost_usd": 0.0,
+      "cost_usd_list_price": 0.00046795,
+      "correct": true,
+      "actions_outside_catalog": [],
+      "promises": []
+    }
+  ]
+}
