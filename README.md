@@ -267,6 +267,91 @@ costo real          = 0 USD/día (modelos gratuitos)
 - Si el modelo no tiene precio en `config/models.yaml`, `cost_usd` y `cost_usd_list_price` quedan en `null` y la CLI avisa por stderr.
 - El cupo diario de OpenRouter depende de la compra de la cuenta: con 400 tickets por día, 1.000 requests alcanzan solo si la cuenta compró USD 10 o más; con menos, el cupo es 50 y los tickets excedentes devuelven 429 y terminan en respaldo.
 
+## Dataset de evaluación
+
+`evals/dataset.jsonl` tiene 44 tickets etiquetados, uno por línea (JSON Lines). Cada línea es un objeto con estos campos:
+
+| Campo | Contenido |
+|---|---|
+| `id` | Identificador único, de `t001` a `t044`. |
+| `query` | El ticket en texto libre, como lo escribiría un cliente. |
+| `expected_category` | La categoría correcta: `billing`, `technical`, `account` u `other`. |
+| `tags` | Qué variedad tiene el ticket: registro, errores, idioma, variante regional o tipo de caso. Un ticket puede tener varios. |
+| `notes` | Por qué tiene esa etiqueta. Si aplica una regla de desempate, lo dice (`Regla 1` a `Regla 4`). |
+
+Una línea real del archivo:
+
+```json
+{"id": "t002", "query": "se me colgó todo, no responde nada", "expected_category": "technical", "tags": ["corto", "informal", "regional_mx"], "notes": "Muy corto. Sistema congelado: technical."}
+```
+
+Los criterios para etiquetar están en [evals/criterios_etiquetado.md](evals/criterios_etiquetado.md): qué incluye cada categoría, las cuatro reglas de desempate y las reglas generales.
+
+### Distribución por categoría
+
+| Categoría | Casos |
+|---|---|
+| `billing` | 11 |
+| `technical` | 11 |
+| `account` | 11 |
+| `other` | 11 |
+| **Total** | **44** |
+
+### Distribución por tag
+
+Un ticket puede tener varios tags, por eso la suma supera 44.
+
+| Tag | Casos |
+|---|---|
+| `informal` | 23 |
+| `regional_ar` | 12 |
+| `formal` | 11 |
+| `regional_mx` | 8 |
+| `ambiguo` | 7 |
+| `regional_co` | 7 |
+| `regional_pe` | 6 |
+| `largo` | 5 |
+| `corto` | 4 |
+| `fuera_de_dominio` | 4 |
+| `mayusculas` | 4 |
+| `regional_cl` | 4 |
+| `regional_uy` | 4 |
+| `enojado` | 3 |
+| `typo` | 3 |
+| `multi_intencion` | 2 |
+| `otro_idioma` | 2 |
+
+Para recalcular las dos distribuciones desde la raíz del repo:
+
+```powershell
+.venv\Scripts\python.exe -c "import json, collections; d = [json.loads(l) for l in open('evals/dataset.jsonl', encoding='utf-8')]; print(len(d), collections.Counter(x['expected_category'] for x in d)); print(collections.Counter(t for x in d for t in x['tags']))"
+```
+
+Salida real:
+
+```text
+44 Counter({'billing': 11, 'technical': 11, 'account': 11, 'other': 11})
+Counter({'informal': 23, 'regional_ar': 12, 'formal': 11, 'regional_mx': 8, 'regional_co': 7, 'ambiguo': 7, 'regional_pe': 6, 'largo': 5, 'corto': 4, 'fuera_de_dominio': 4, 'mayusculas': 4, 'regional_uy': 4, 'regional_cl': 4, 'typo': 3, 'enojado': 3, 'otro_idioma': 2, 'multi_intencion': 2})
+```
+
+### Cómo se construyó
+
+- Son casos sintéticos, redactados para parecerse a tickets reales a partir de los ejemplos de tono de la consigna. No hay tickets reales de Nubbix.
+- Los criterios de etiquetado se escribieron junto con los tickets. Cada etiqueta tiene una nota con el motivo.
+- Está balanceado: 11 casos por categoría. Con clases desbalanceadas, una accuracy alta puede esconder que una categoría chica casi siempre falla.
+- Cubre registros formales e informales, enojos, errores de tipeo, mayúsculas, mensajes muy cortos y muy largos, consultas fuera de dominio (saludos, spam, preguntas que no son de Nubbix), dos tickets en otro idioma (inglés y portugués) y variantes de seis países de LATAM.
+- Nueve casos son difíciles (tags `ambiguo` o `multi_intencion`). Cada uno aplica una regla de desempate de los criterios:
+  - Regla 1, multi-intención: t022 y t041.
+  - Regla 2, login y permisos: t030, t039 y t042.
+  - Regla 3, plan: t032 y t033.
+  - Regla 4, facturación electrónica: t037 y t038.
+
+### Qué no mide
+
+- Las acciones no tienen una respuesta esperada. El runner va a medir qué porcentaje de las acciones pertenece al catálogo, no si coinciden con una lista exacta: así no se castiga redactar distinto un mismo paso.
+- Con 44 casos, una accuracy de 80 % tiene un intervalo de confianza de unos ±12 puntos. Diferencias chicas entre dos prompts no son concluyentes, por eso conviene repetir las corridas antes de elegir.
+- Los ejemplos few-shot de los prompts (Parte 7) no están en este archivo y no se van a agregar. Si un ejemplo del prompt fuera un caso del dataset, el modelo vería la respuesta antes de la prueba y la métrica de ese caso quedaría inflada.
+
 ## Arquitectura
 
 ```text
@@ -311,6 +396,7 @@ stderr: avisos; "Error: ..." y código de salida 1 si algo impide responder
 ## Pendiente
 
 - Guardrails de entrada y de salida (Parte 8). Hoy un ticket puede contener `</ticket>` y cerrar el delimitador antes de tiempo.
-- Dataset de evaluación y runner de evals (Partes 5 y 6).
+- Runner de evals (Parte 6): ejecuta el dataset con cada prompt y reporta las métricas globales y por categoría.
+- Segunda revisión independiente de las etiquetas del dataset.
 - Confirmar los límites por minuto y por día de `gemini-3.5-flash-lite` en AI Studio.
 - Registrar los tokens de intentos previos cuando un intento posterior falla con un error que no es transitorio.
