@@ -13,13 +13,15 @@ _GIVE = r"(?:aplic|otorg|conced|bonific)\w*"
 _PERCENT = r"(?:\d+\s*(?:%|por ciento|percent)\s*(?:de\s+|off\s+)?)?"
 _GAP = r"(?:\s+[^\s.;:!?,]+){0,3}?\s+"
 _PRONOUN = r"(?:te|le|les|lhe|lhes)"
+_NOT_CALLBACK = r"(?!\s+(?:(?:la|el|los|las|tu|su)\s+)?(?:llamad|mensaj|correo|respuesta|contact|consult|mail|email))"
 _FUTURE = r"(?:vamos a|voy a|van a|vamos|vou|iremos)"
 _WE_FUTURE = r"(?:we will|we(?:'|’)ll|we are going to|we(?:'|’)re going to)"
 _WE_STATE = r"(?:we will|we(?:'|’)ll|we are|we(?:'|’)re|we have|we(?:'|’)ve)"
 
 _PATTERNS: tuple[str, ...] = (
-    rf"\b{_PRONOUN}\s+(?:{_FUTURE}\s+)?{_REFUND_VERB}",
-    rf"\b{_FUTURE}\s+(?:devolver|reintegrar|reembolsar|bonificar|descontar|estornar|creditar){_PRONOUN}\b",
+    rf"\b{_PRONOUN}\s+(?:{_FUTURE}\s+)?{_REFUND_VERB}\b{_NOT_CALLBACK}",
+    rf"\b{_FUTURE}\s+(?:devolver|reintegrar|reembolsar|bonificar|descontar|estornar|creditar){_PRONOUN}\b"
+    rf"{_NOT_CALLBACK}",
     rf"\b{_PRONOUN}\s+(?:{_FUTURE}\s+)?(?:aplic|otorg|conced|bonific|d(?:ar|a|amos|oy))\w*"
     rf"{_GAP}{_PERCENT}{_REFUND_OBJ}",
     rf"\b(?:vamos a|voy a|van a|se)\s+(?:{_GIVE}|{_REFUND_VERB}){_GAP}{_PERCENT}{_MONEY}",
