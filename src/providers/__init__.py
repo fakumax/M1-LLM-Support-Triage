@@ -2,10 +2,12 @@ import os
 
 from src.config import load_models_config
 from src.providers.base import LLMProvider, ProviderError, ProviderSettings
+from src.providers.gemini import GeminiProvider
 from src.providers.openrouter import OpenRouterProvider
 
 PROVIDERS: dict[str, type[LLMProvider]] = {
     "openrouter": OpenRouterProvider,
+    "gemini": GeminiProvider,
 }
 
 

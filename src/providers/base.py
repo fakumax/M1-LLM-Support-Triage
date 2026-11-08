@@ -49,6 +49,13 @@ class LLMProvider(ABC):
         ...
 
 
+def parse_retry_after(value: str | None) -> float | None:
+    try:
+        return float(value) if value else None
+    except ValueError:
+        return None
+
+
 def backoff_delay(attempt: int, max_retry_after_s: float, retry_after_s: float | None = None) -> float:
     if retry_after_s is not None:
         return min(retry_after_s, max_retry_after_s)

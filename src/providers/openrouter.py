@@ -10,6 +10,7 @@ from src.providers.base import (
     ProviderSettings,
     TransientProviderError,
     call_with_backoff,
+    parse_retry_after,
 )
 
 PROVIDER_NAME = "openrouter"
@@ -51,7 +52,7 @@ class OpenRouterProvider(LLMProvider):
         except (openai.RateLimitError, openai.InternalServerError) as error:
             raise TransientProviderError(
                 f"OpenRouter respondió {error.status_code}",
-                retry_after_s=_retry_after_seconds(error),
+                retry_after_s=parse_retry_after(error.response.headers.get("retry-after")),
             ) from error
         except openai.APIConnectionError as error:
             raise TransientProviderError("timeout o error de conexión con OpenRouter") from error
@@ -74,11 +75,3 @@ class OpenRouterProvider(LLMProvider):
             model=self._settings.model,
             reported_cost_usd=float(cost) if cost is not None else None,
         )
-
-
-def _retry_after_seconds(error: openai.APIStatusError) -> float | None:
-    value = error.response.headers.get("retry-after")
-    try:
-        return float(value) if value else None
-    except ValueError:
-        return None
