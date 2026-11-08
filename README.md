@@ -95,6 +95,7 @@ Opciones:
 | `--model` | ID del modelo del proveedor | El `default_model` del proveedor en `config/models.yaml` |
 | `--prompt` | Versión del prompt en `prompts/` | `v3` |
 | `--no-guardrails` | Desactiva los guardrails de entrada y salida, para medir su efecto (ver [Seguridad y guardrails](#seguridad-y-guardrails)). | Activados |
+| `--cache` | Reutiliza respuestas guardadas en `data/cache/`: si la respuesta ya existe, no llama a la API (ver [Caché con hash MD5](#caché-con-hash-md5)). | Desactivado |
 
 Con OpenRouter, la regla del proyecto es usar solo modelos `:free`. La CLI no lo fuerza: la key tiene tope de gasto de USD 0, así que un modelo pago falla con un error claro. La suite de evals sí lo verifica antes de llamar a la API.
 
@@ -105,7 +106,7 @@ Dos proveedores detrás de la misma interfaz `LLMProvider.complete(...)`. OpenRo
 | Proveedor | SDK | Modelo por defecto | Clave | Límites del nivel gratuito |
 |---|---|---|---|---|
 | `openrouter` | `openai` 3.46.0, con `base_url` de OpenRouter | `nvidia/nemotron-3.5-super-vl:free` | `OPENROUTER_API_KEY` | 20 requests por minuto. Por día: 50 si la cuenta compró menos de USD 10 en créditos, 1.000 si compró USD 10 o más. Al excederse responde 429. Fuente: https://openrouter.ai/docs/api/reference/limits (consultada el 08/11/2026). |
-| `gemini` | `google-genai` 3.0.0 | `gemini-3.5-flash-lite` | `GEMINI_API_KEY` | Nivel gratuito de AI Studio. Los límites por minuto y por día del modelo **no están publicados** en la documentación pública consultada (las páginas del modelo y de límites no los muestran, y la página de límites de AI Studio pide iniciar sesión). **Pendiente de confirmar en la cuenta** antes de correr el dataset completo. |
+| `gemini` | `google-genai` 3.0.0 | `gemini-3.5-flash-lite` | `GEMINI_API_KEY` | Nivel gratuito de AI Studio. Los límites por minuto y por día del modelo **no están publicados** en la documentación pública consultada (las páginas del modelo y de límites no los muestran, y la página de límites de AI Studio pide iniciar sesión). La corrida completa de 44 casos de la Parte 9 no tuvo respaldos (ver [Extra credits](#extra-credits)). |
 
 Gemini se configura con `--provider gemini`. Su modelo por defecto es `gemini-3.5-flash-lite`: en la prueba de la Parte 4 respondió en 2 s con JSON válido. `gemini-3.8-flash` tardó 182 s en el nivel gratuito, así que no es el default.
 
@@ -191,10 +192,11 @@ No genera línea un error que no es transitorio (`ProviderError`, por ejemplo un
 | `prompt_version` | ¿Con qué versión del prompt se generó la respuesta? |
 | `prompt_tokens`, `completion_tokens`, `total_tokens` | ¿Cuántos tokens de entrada, de salida y en total consumió el request? Suma los de todos los intentos. En Gemini, `completion_tokens` incluye el razonamiento. |
 | `latency_s` | ¿Cuánto esperó la persona? Tiempo de reloj desde que entra a `triage()` hasta la respuesta, incluidas las esperas de los reintentos. |
-| `cost_usd` | ¿Cuánto se pagó? Tokens × precio real del modelo. Es 0 en los modelos gratuitos. |
+| `cost_usd` | ¿Cuánto se pagó? Tokens × precio real del modelo. Es 0 en los modelos gratuitos y en los aciertos de caché. |
 | `cost_usd_list_price` | ¿Cuánto costaría lo mismo en un modelo pago de referencia? Mide el costo aunque hoy no se pague. |
 | `reported_cost_usd` | ¿Qué costo informa el proveedor? Sirve para contrastar con `cost_usd`; `null` si no lo informa (Gemini no lo informa). |
 | `attempts` | ¿Cuántas llamadas HTTP hizo el triage? Suma los reintentos de transporte y los de validación. |
+| `cached` | ¿La respuesta salió de `data/cache/`? `true` si ninguna llamada del triage llegó a la API. Su costo es 0 y `attempts` es 0, con los tokens originales. |
 | `fallback` | ¿Se devolvió la respuesta de respaldo? `true` si se agotaron los reintentos de validación o de transporte. |
 | `category` | ¿Qué categoría asignó el modelo? En respaldo, `other`. Permite ver costo y latencia por categoría. |
 | `guardrail` | Lista de los guardrails que se activaron en el request (ver [Seguridad y guardrails](#seguridad-y-guardrails)), o `null` si ninguno. |
@@ -217,6 +219,8 @@ Se redondea a 8 decimales. Los precios están en `config/models.yaml`, en USD po
 | Lista (`cost_usd_list_price`) | `nvidia/nemotron-3.5-super-vl` (pago) | 0,15 | 0,50 | https://openrouter.ai/api/v1/models | 2026-11-08 |
 | Real (`cost_usd`) | `gemini-3.5-flash-lite` (nivel gratuito) | 0 | 0 | https://aistudio.google.com/docs/pricing | 2026-11-08 |
 | Lista (`cost_usd_list_price`) | `gemini-3.5-flash-lite` (pago estándar, texto) | 0,30 | 2,50 | https://aistudio.google.com/docs/pricing | 2026-11-08 |
+| Real (`cost_usd`) | `dots-studio/dots-3-note-preview:free` | 0 | 0 | https://openrouter.ai/api/v1/models | 2026-11-08 |
+| Lista (`cost_usd_list_price`) | `nvidia/nemotron-3.5-super-vl` como referencia para `dots-studio/dots-3-note-preview:free` (no tiene variante paga) | 0,15 | 0,50 | https://openrouter.ai/api/v1/models | 2026-11-08 |
 
 La referencia de lista de OpenRouter es la variante paga del mismo modelo, sin `:free`. El endpoint publica los precios en USD por token (`0.00000015` y `0.0000005`); se multiplican por 1.000.000. Para Gemini, la página de precios indica que el precio de salida incluye los tokens de razonamiento ("Output price (including thinking tokens)"). La página no muestra fecha de actualización: la fecha de la tabla es la de la consulta.
 
@@ -369,7 +373,8 @@ Desde la raíz del repo:
 | `--prompt` | Versión del prompt en `prompts/` | `v3` |
 | `--dataset RUTA` | Dataset JSONL a evaluar. Si no es el default, el nombre del reporte agrega el nombre del archivo (por ejemplo `_holdout`) | `evals/dataset.jsonl` |
 | `--limit N` | Evalúa solo los primeros N casos. No guarda reportes | todos los casos |
-| `--sleep S` | Segundos de pausa entre requests | `eval_sleep_s` de `config/models.yaml`: 3,2 s en OpenRouter (20 requests por minuto como máximo) y 4,5 s en Gemini |
+| `--sleep S` | Segundos de pausa después de cada llamada a la API. No se esperan después de un acierto de caché ni de un bloqueo de guardrail | `eval_sleep_s` de `config/models.yaml`: 3,2 s en OpenRouter (20 requests por minuto como máximo) y 4,5 s en Gemini |
+| `--cache` | Reutiliza respuestas de `data/cache/` (ver [Caché con hash MD5](#caché-con-hash-md5)). El reporte indica cuántos casos salieron de la caché | Desactivado |
 
 El progreso de cada caso va a stderr y el reporte en Markdown va a stdout. Una corrida completa guarda dos archivos en `evals/results/`: `<AAAAmmdd-HHMM>_<proveedor>_<modelo>_<prompt>[_<dataset>].json`, con las métricas y el detalle de cada caso, y un `.md` con las mismas tablas. Salida real de la línea base (fragmento de stderr):
 
@@ -489,7 +494,7 @@ Resultados de cada corrida completa (los reportes están en `evals/results/`: v1
 
 - **Circularidad.** Las reglas de v3 salen de `evals/criterios_etiquetado.md`, que es la definición con la que se etiquetó el dataset, y se escribieron después de ver los dos fallos del v1 (t022 y t033). Por eso el 100 % del dataset no es una estimación fuera de muestra. La sección siguiente la contrasta con tickets nuevos: v3 también acierta todo, pero el holdout usa los mismos criterios, así que no es una prueba independiente de ellos.
 - **Ruido con dos corridas por versión.** Un caso equivale a 2,3 puntos de accuracy, así que la comparación tiene poca resolución.
-- **Un solo modelo.** Gemini no se evaluó: la documentación de AI Studio no publica límites gratuitos para `gemini-3.5-flash-lite` (aparece solo en tablas de pago), y la especificación pide verificarlos antes de correr evals.
+- **Un solo modelo en la comparación de prompts.** v1, v2 y v3 se midieron solo con nemotron. Gemini y dots se compararon con v3 en [Extra credits](#extra-credits).
 - **Detector de promesas (`src/policy.py`).** Son patrones de expresiones regulares, probados offline con 22 casos positivos y 34 negativos. Falso positivo conocido: "te devolvemos la llamada", donde devolver no es un reintegro. Falso negativo conocido: promesas vagas como "a la brevedad" o "en breve", que no tienen un plazo concreto.
 
 ### Validación fuera de muestra (holdout)
@@ -649,6 +654,72 @@ Corrida completa de los 44 casos con guardrails y prompt v3 (`evals/results/2026
 - **Canary.** Es un valor fijo en `config/models.yaml`, público en el repo. Detecta cuando el modelo repite el texto del prompt, pero no es un secreto.
 - **Tarjetas.** Luhn deja pasar cerca de uno de cada diez números de 13 a 19 dígitos que no son tarjetas. Se enmascaran igual, sin bloquear.
 
+## Extra credits
+
+Se hicieron los dos extra credits de la Parte 9: caché con hash MD5 y comparativa de modelos y proveedores. La comparativa usa el prompt v3, el dataset de 44 casos, guardrails activados y temperature 0.
+
+### Caché con hash MD5
+
+`src/cache.py` agrega `CachedProvider`, un decorador de `LLMProvider`. Envuelve a cualquier proveedor, devuelve el mismo `LLMResponse` y lanza las mismas excepciones, así que `triage()` no sabe si la respuesta vino de la caché.
+
+```text
+triage() -> CachedProvider.complete()
+              |
+              |-- existe data/cache/<md5>.json -> devuelve el texto guardado (0 requests)
+              |
+              '-- no existe -> provider.complete() -> guarda data/cache/<md5>.json -> devuelve
+```
+
+La clave es el MD5 de un JSON canónico (`sort_keys=True`) con proveedor, modelo, system prompt, mensajes, JSON Schema, temperature y max_tokens. Cambiar cualquiera de esos valores da otra clave. Un acierto devuelve `attempts=0`, la latencia de leer el archivo, costo 0 (real y de lista) y los tokens originales, para poder auditar lo que costó la respuesta guardada. La métrica queda con `"cached": true`. `data/cache/` está en `.gitignore`.
+
+Por qué MD5 alcanza: la caché no protege nada frente a un atacante, solo evita repetir una llamada ya hecha en el mismo equipo. No hace falta resistencia a colisiones: una colisión accidental entre claves de 32 caracteres hexadecimales es prácticamente imposible, y quien pudiera fabricar una colisión a propósito ya puede escribir en `data/cache/`.
+
+Prueba: el mismo comando dos veces, sin cambios entre corridas.
+
+```powershell
+.venv\Scripts\python.exe -m evals.runner --cache --limit 3
+```
+
+| Corrida | Requests reales | Latencia t001 / t002 / t003 | Predicciones | Costo real |
+|---|---|---|---|---|
+| 1.ª (caché vacía) | 3 | 4,91 s / 4,56 s / 6,33 s | billing / technical / account | 0 USD |
+| 2.ª (caché llena) | 0 | 0,007 s / 0,007 s / 0,005 s | billing / technical / account | 0 USD |
+
+Tiempo de pared de la 2.ª corrida: 1,2 s, con el arranque de Python incluido. El de la 1.ª no se midió. La pausa entre requests solo se espera después de una llamada a la API, así que la corrida en caché no espera.
+
+### Comparativa de modelos y proveedores
+
+Mismo prompt (v3), mismo dataset (44 casos), guardrails activados y temperature 0. Nemotron se toma del reporte de la Parte 8 (`evals/results/20261108-1533_openrouter_nvidia-nemotron-3-5-super-vl-free_v3.md`), que tiene esa misma configuración; no se volvió a correr. Gemini y dots se corrieron completos el 08/11 (reportes `20261108-1600` y `20261108-1605`).
+
+| Modelo | Proveedor | Accuracy | Macro-F1 | F1 billing / technical / account / other | % JSON válido | Latencia p50 / p95 | Tokens por ticket | Costo real | Costo a precio de lista | Proyección mensual a 400 tickets por día (lista) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `nvidia/nemotron-3.5-super-vl:free` | OpenRouter | 100 % (44/44) | 1,000 | 1,000 / 1,000 / 1,000 / 1,000 | 100 % | 3,82 s / 18,65 s | 2.692 | 0 USD | 0,000551 USD por ticket | 6,61 USD |
+| `gemini-3.5-flash-lite` | Gemini | 100 % (44/44) | 1,000 | 1,000 / 1,000 / 1,000 / 1,000 | 100 % | 1,18 s / 4,51 s | 2.183 | 0 USD | 0,000843 USD por ticket | 10,11 USD |
+| `dots-studio/dots-3-note-preview:free` | OpenRouter | 100 % (44/44) | 1,000 | 1,000 / 1,000 / 1,000 / 1,000 | 97,7 % (1 caso con reintento) | 11,03 s / 20,72 s | 3.166 | 0 USD | 0,000788 USD por ticket | 9,46 USD |
+
+El costo real es 0 en los tres porque son modelos o niveles gratuitos. La proyección es 400 tickets por día × 30 días × costo por ticket a precio de lista.
+
+- **El dataset no separa a los modelos.** Los tres aciertan 44 de 44. El prompt v3 se diseñó mirando este dataset, así que el 100 % es dentro de muestra. Las diferencias reales están en latencia, contrato y costo.
+- **Dots tuvo un reintento de validación** (t003, una respuesta inválida que el reintento corrigió) y **seis acciones con errores de tipeo** fuera del catálogo: `gestionar_usuos_y_permisos` (4 casos), `actualizar_medio_de_pag` (1) y `actualizar_medio_de pago` (1). El contrato acepta cualquier string, así que el sistema no lo bloquea; solo lo cuenta el reporte.
+- **Gemini** completó los 44 casos sin respaldos y sin respuestas inválidas. Tuvo dos reintentos de transporte recuperados (t030 y t037).
+- **Nemotron** no tuvo respuestas inválidas ni acciones fuera del catálogo. Su mediana es buena (3,82 s), pero el p95 de 18,65 s muestra que a veces tarda mucho más.
+
+### Recomendación
+
+Para producción recomiendo **`gemini-3.5-flash-lite`** con el prompt v3, en el nivel pagado:
+
+- **Calidad:** empata con los otros dos en este dataset (44 de 44). La decisión sale de latencia, contrato y costo.
+- **Latencia:** es el más rápido, con p50 de 1,18 s y p95 de 4,51 s, frente a 3,82 s y 18,65 s de nemotron, y 11,03 s y 20,72 s de dots.
+- **Contrato:** 44 de 44 válidos al primer intento y ninguna acción fuera del catálogo.
+- **Costo:** 10,11 USD por mes a 400 tickets por día, a precio de lista. Son 3,50 USD por mes más que nemotron (6,61 USD).
+
+Condiciones y lo que no se sabe:
+
+- El nivel gratuito de Gemini no publica límites para este modelo. En producción hay que pagar, y el costo real sería el de lista.
+- Con 44 casos y un prompt diseñado sobre este dataset, la accuracy no discrimina. Antes de decidir por calidad hay que correr los tres modelos en el holdout; hoy solo está corrido nemotron (v1 y v3).
+- Nemotron es la alternativa si el costo pesa más que la latencia: es el más barato a precio de lista, con 100 % de accuracy, pero su p95 es de 18,65 s.
+- Dots se descarta: es el más lento, el único que necesitó un reintento de validación y el que escribió acciones fuera del catálogo.
+
 ## Arquitectura
 
 ```text
@@ -681,8 +752,9 @@ stderr: avisos; "Error: ..." y código de salida 1 si algo impide responder
 | Módulo | Responsabilidad |
 |---|---|
 | `src/main.py` | CLI: parsea argumentos, llama al pipeline, imprime el JSON o el error. |
-| `src/pipeline.py` | Arma las dependencias (proveedor, prompt, reintentos y guardrails) y registra cada request en `data/metrics.jsonl`. Lo usan la CLI y el runner de evals. |
+| `src/pipeline.py` | Arma las dependencias (proveedor, caché opcional, prompt, reintentos y guardrails) y registra cada request en `data/metrics.jsonl`. Lo usan la CLI y el runner de evals. |
 | `src/config.py` | Carga `.env` y `config/models.yaml`. |
+| `src/cache.py` | `CachedProvider`, decorador de `LLMProvider` con caché en `data/cache/` por hash MD5 de la request. Ver [Caché con hash MD5](#caché-con-hash-md5). |
 | `src/schema.py` | Contrato `SupportResponse` (Pydantic). Su JSON Schema es el que se envía al modelo. `ACTION_CATALOG` y `CATEGORIES` son las listas de acciones y categorías que usan el prompt y el runner. |
 | `src/parsing.py` | Extrae el primer objeto JSON de la respuesta (sin cercos de código ni texto alrededor) y lo valida. |
 | `src/prompts.py` | Carga `prompts/*.yaml` y arma el `system` y los mensajes. |
@@ -707,5 +779,7 @@ stderr: avisos; "Error: ..." y código de salida 1 si algo impide responder
 - Validar v3 con más tickets nuevos: en el holdout de 16 casos, v1 y v3 aciertan todo, así que falta una muestra más grande donde las dos versiones se separen (ver context engineering).
 - Las fechas de los reportes están en hora local, sin zona horaria.
 - Segunda revisión independiente de las etiquetas del dataset y del holdout.
-- Evaluar con Gemini: la documentación de AI Studio no publica límites gratuitos para `gemini-3.5-flash-lite`, así que la comparativa se corrió solo con OpenRouter.
+- Límites gratuitos de Gemini: la documentación no los publica para `gemini-3.5-flash-lite`. La corrida completa tuvo dos reintentos de transporte recuperados y ningún respaldo, pero eso no establece el cupo. Para producción hay que usar el nivel pagado.
+- Holdout con Gemini y dots: hoy solo está corrido con nemotron.
+- El contrato no valida que las acciones estén en `ACTION_CATALOG`: dots escribió seis acciones con errores de tipeo y el sistema las aceptó. Solo lo cuenta el reporte.
 - Registrar los tokens de intentos previos cuando un intento posterior falla con un error que no es transitorio.
