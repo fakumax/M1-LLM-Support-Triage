@@ -37,6 +37,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--limit", type=int, help="evalúa solo los primeros N casos; no guarda reportes")
     parser.add_argument("--sleep", type=float, help="segundos entre requests (por defecto, según el proveedor)")
     parser.add_argument("--no-guardrails", action="store_true", help="desactiva los guardrails de entrada y salida")
+    parser.add_argument("--cache", action="store_true", help="reutiliza respuestas de data/cache/ sin llamar a la API")
     args = parser.parse_args(argv)
     if args.limit is not None and args.limit < 1:
         parser.error("--limit tiene que ser al menos 1")
@@ -52,7 +53,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     started = datetime.now()
     try:
-        deps = build_triage_deps(args.provider, args.model, args.prompt, with_guardrails=not args.no_guardrails)
+        deps = build_triage_deps(
+            args.provider,
+            args.model,
+            args.prompt,
+            with_guardrails=not args.no_guardrails,
+            with_cache=args.cache,
+        )
         _require_free_model(deps.provider.name, deps.provider.model)
         sleep_s = _sleep_s(deps.provider.name, args.sleep)
         dataset = args.dataset.resolve()
@@ -79,6 +86,7 @@ def main(argv: list[str] | None = None) -> int:
         dataset=_display_path(dataset),
         sleep_s=sleep_s,
         guardrails=deps.guardrails is not None,
+        cache=args.cache,
     )
     summary = summarize(outcomes)
     markdown = render_markdown(info, summary, outcomes)
@@ -115,12 +123,12 @@ def load_dataset(path: Path) -> list[dict[str, Any]]:
 def run_cases(cases: list[dict[str, Any]], deps: TriageDeps, sleep_s: float) -> list[CaseOutcome]:
     outcomes: list[CaseOutcome] = []
     for index, case in enumerate(cases, start=1):
-        if index > 1:
-            time.sleep(sleep_s)
         result, record = triage_and_register(case["query"], deps, source=EVAL_SOURCE)
         outcome = _outcome(case, result, record)
         outcomes.append(outcome)
         _progress(index, len(cases), outcome)
+        if result.attempts > 0 and index < len(cases):
+            time.sleep(sleep_s)
     return outcomes
 
 
@@ -159,6 +167,7 @@ def _outcome(case: dict[str, Any], result: TriageResult, record: dict[str, Any] 
         cost_usd=record["cost_usd"] if record else None,
         cost_usd_list_price=record["cost_usd_list_price"] if record else None,
         guardrail=result.guardrail,
+        cached=result.cached,
     )
 
 

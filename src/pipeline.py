@@ -2,6 +2,7 @@ import sys
 from dataclasses import dataclass
 from typing import Any
 
+from src.cache import CachedProvider
 from src.config import load_models_config
 from src.guardrails import Guardrails
 from src.metrics import METRICS_FILE, MetricsError, append_metrics, build_record
@@ -20,13 +21,21 @@ class TriageDeps:
 
 
 def build_triage_deps(
-    provider_name: str, model: str | None, prompt_version: str, with_guardrails: bool = True
+    provider_name: str,
+    model: str | None,
+    prompt_version: str,
+    with_guardrails: bool = True,
+    with_cache: bool = False,
 ) -> TriageDeps:
     config = load_models_config()
+    defaults = config["defaults"]
+    provider = get_provider(provider_name, model)
+    if with_cache:
+        provider = CachedProvider(provider, temperature=defaults["temperature"], max_tokens=defaults["max_tokens"])
     return TriageDeps(
-        provider=get_provider(provider_name, model),
+        provider=provider,
         prompt=load_prompt(prompt_version),
-        max_parse_retries=config["defaults"]["max_parse_retries"],
+        max_parse_retries=defaults["max_parse_retries"],
         guardrails=_guardrails(config["guardrails"]) if with_guardrails else None,
     )
 

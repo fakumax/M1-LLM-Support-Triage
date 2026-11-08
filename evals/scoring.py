@@ -28,6 +28,7 @@ class CaseOutcome:
     cost_usd: float | None
     cost_usd_list_price: float | None
     guardrail: tuple[str, ...] | None = None
+    cached: bool = False
 
     @property
     def correct(self) -> bool:
@@ -62,6 +63,7 @@ def summarize(outcomes: list[CaseOutcome]) -> dict[str, Any]:
         "cost_usd": cost_stats(outcomes),
         "promises": promise_stats(outcomes),
         "guardrails": guardrail_stats(outcomes),
+        "cached_cases": sum(1 for outcome in outcomes if outcome.cached),
         "fallback_ids": [outcome.id for outcome in outcomes if outcome.fallback],
         "failed_ids": [outcome.id for outcome in outcomes if not outcome.correct],
     }

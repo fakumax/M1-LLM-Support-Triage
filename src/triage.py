@@ -25,6 +25,7 @@ class TriageResult:
     invalid_responses: int = 0
     fallback: bool = False
     guardrail: tuple[str, ...] | None = None
+    cached: bool = False
 
 
 @dataclass
@@ -34,13 +35,21 @@ class _Usage:
     reported_cost_usd: float | None = None
     attempts: int = 0
     invalid_responses: int = 0
+    calls: int = 0
+    cache_hits: int = 0
 
     def add(self, llm: LLMResponse) -> None:
         self.prompt_tokens += llm.prompt_tokens
         self.completion_tokens += llm.completion_tokens
         self.attempts += llm.attempts
+        self.calls += 1
+        self.cache_hits += int(llm.cached)
         if llm.reported_cost_usd is not None:
             self.reported_cost_usd = (self.reported_cost_usd or 0.0) + llm.reported_cost_usd
+
+    @property
+    def cached(self) -> bool:
+        return self.calls > 0 and self.cache_hits == self.calls
 
 
 def triage(
@@ -127,4 +136,5 @@ def _result(
         invalid_responses=usage.invalid_responses,
         fallback=fallback,
         guardrail=rules or None,
+        cached=usage.cached,
     )

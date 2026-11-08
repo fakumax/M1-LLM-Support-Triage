@@ -15,6 +15,7 @@ class LLMResponse:
     model: str
     reported_cost_usd: float | None
     attempts: int = 1
+    cached: bool = False
 
 
 @dataclass(frozen=True)

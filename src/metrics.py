@@ -33,6 +33,12 @@ def estimate_cost(prompt_tokens: int, completion_tokens: int, in_per_mtok: float
     return round(cost, 8)
 
 
+def _cost(result: TriageResult, in_per_mtok: float, out_per_mtok: float) -> float:
+    if result.cached:
+        return 0.0
+    return estimate_cost(result.prompt_tokens, result.completion_tokens, in_per_mtok, out_per_mtok)
+
+
 def find_pricing(provider: str, model: str) -> ModelPricing | None:
     models = load_models_config()["providers"].get(provider, {}).get("models", {})
     entry = models.get(model)
@@ -57,15 +63,8 @@ def build_record(result: TriageResult, source: str, prompt_version: str) -> dict
     cost_usd = None
     cost_usd_list_price = None
     if pricing is not None:
-        cost_usd = estimate_cost(
-            result.prompt_tokens, result.completion_tokens, pricing.price_in_per_mtok, pricing.price_out_per_mtok
-        )
-        cost_usd_list_price = estimate_cost(
-            result.prompt_tokens,
-            result.completion_tokens,
-            pricing.list_price.in_per_mtok,
-            pricing.list_price.out_per_mtok,
-        )
+        cost_usd = _cost(result, pricing.price_in_per_mtok, pricing.price_out_per_mtok)
+        cost_usd_list_price = _cost(result, pricing.list_price.in_per_mtok, pricing.list_price.out_per_mtok)
     return {
         "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "source": source,
@@ -80,6 +79,7 @@ def build_record(result: TriageResult, source: str, prompt_version: str) -> dict
         "cost_usd_list_price": cost_usd_list_price,
         "reported_cost_usd": result.reported_cost_usd,
         "attempts": result.attempts,
+        "cached": result.cached,
         "fallback": result.fallback,
         "category": result.response.category,
         "guardrail": list(result.guardrail) if result.guardrail else None,

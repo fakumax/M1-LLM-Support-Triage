@@ -18,6 +18,7 @@ class RunInfo:
     dataset: str
     sleep_s: float
     guardrails: bool
+    cache: bool
 
 
 def build_payload(info: RunInfo, summary: dict[str, Any], outcomes: list[CaseOutcome]) -> dict[str, Any]:
@@ -70,6 +71,7 @@ def _title(info: RunInfo, summary: dict[str, Any]) -> list[str]:
         f"- Dataset: `{info.dataset}` ({summary['cases']} casos)",
         f"- Pausa entre requests: {info.sleep_s} s",
         f"- Guardrails: {'activados' if info.guardrails else 'desactivados (--no-guardrails)'}",
+        f"- Caché: {'activada (--cache)' if info.cache else 'desactivada'}",
     ]
 
 
@@ -192,6 +194,7 @@ def _operations(summary: dict[str, Any]) -> list[str]:
         "|---|---|",
         f"| Latencia media / p50 / p95 | {latency['mean']:.2f} s / {latency['p50']:.2f} s / {latency['p95']:.2f} s |",
         f"| Tokens prompt / completion / total | {tokens['prompt']} / {tokens['completion']} / {tokens['total']} |",
+        f"| Casos servidos desde caché | {summary['cached_cases']} de {summary['cases']} |",
         f"| Costo real total (USD) | {_usd(cost['real_total'])} |",
         f"| Costo a precio de lista total (USD) | {_usd(cost['list_total'])} |",
         f"| Costo por ticket, real / lista (USD) | {_usd(cost['real_per_ticket'])} / {_usd(cost['list_per_ticket'])} |",
