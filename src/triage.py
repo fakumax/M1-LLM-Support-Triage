@@ -1,3 +1,4 @@
+import time
 from dataclasses import dataclass
 
 from pydantic import ValidationError
@@ -15,9 +16,14 @@ class TriageError(Exception):
 class TriageResult:
     response: SupportResponse
     llm: LLMResponse
+    latency_s: float
+    attempts: int
+    fallback: bool = False
+    guardrail: str | None = None
 
 
 def triage(query: str, provider: LLMProvider, prompt: Prompt) -> TriageResult:
+    started = time.perf_counter()
     if not query.strip():
         raise TriageError("la consulta está vacía")
     system, messages = build_messages(prompt, query)
@@ -26,7 +32,13 @@ def triage(query: str, provider: LLMProvider, prompt: Prompt) -> TriageResult:
         response = SupportResponse.model_validate_json(llm.text)
     except ValidationError as error:
         raise TriageError(f"la respuesta del modelo no cumple el contrato: {_describe(error)}") from error
-    return TriageResult(response=response, llm=llm)
+    latency_s = time.perf_counter() - started
+    return TriageResult(
+        response=response,
+        llm=llm,
+        latency_s=round(latency_s, 3),
+        attempts=llm.attempts,
+    )
 
 
 def _describe(error: ValidationError) -> str:

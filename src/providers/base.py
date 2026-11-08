@@ -1,7 +1,7 @@
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 
@@ -14,6 +14,7 @@ class LLMResponse:
     provider: str
     model: str
     reported_cost_usd: float | None
+    attempts: int = 1
 
 
 @dataclass(frozen=True)
@@ -57,9 +58,11 @@ def call_with_backoff(
     attempt = 0
     while True:
         try:
-            return call()
+            response = call()
         except TransientProviderError as error:
             if attempt >= max_api_retries:
                 raise
             sleep(backoff_delay(attempt, error.retry_after_s))
             attempt += 1
+        else:
+            return replace(response, attempts=attempt + 1)

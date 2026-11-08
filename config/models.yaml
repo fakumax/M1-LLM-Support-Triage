@@ -12,3 +12,15 @@ providers:
     api_key_env: OPENROUTER_API_KEY
     base_url: https://openrouter.ai/api/v1
     default_model: nvidia/nemotron-3.5-super-vl:free
+    models:
+      "nvidia/nemotron-3.5-super-vl:free":
+        price_in_per_mtok: 0
+        price_out_per_mtok: 0
+        price_source: https://openrouter.ai/api/v1/models
+        price_date: "2026-11-08"
+        list_price:
+          model: nvidia/nemotron-3.5-super-vl
+          in_per_mtok: 0.15
+          out_per_mtok: 0.5
+          source: https://openrouter.ai/api/v1/models
+          date: "2026-11-08"
