@@ -30,6 +30,18 @@ providers:
           out_per_mtok: 0.5
           source: https://openrouter.ai/api/v1/models
           date: "2026-11-08"
+      "dots-studio/dots-3-note-preview:free":
+        price_in_per_mtok: 0
+        price_out_per_mtok: 0
+        price_source: https://openrouter.ai/api/v1/models
+        price_date: "2026-11-08"
+        list_price:
+          model: nvidia/nemotron-3.5-super-vl
+          in_per_mtok: 0.15
+          out_per_mtok: 0.5
+          source: https://openrouter.ai/api/v1/models
+          date: "2026-11-08"
+          note: "sin variante paga de dots en OpenRouter; referencia de tamaño parecido (12B activos frente a 16B)"
   gemini:
     api_key_env: GEMINI_API_KEY
     default_model: gemini-3.5-flash-lite
