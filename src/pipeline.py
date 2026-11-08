@@ -44,17 +44,11 @@ def _guardrails(settings: dict[str, Any]) -> Guardrails:
     return Guardrails(canary=settings["canary"], max_query_chars=settings["max_query_chars"])
 
 
-def triage_and_register(query: str, deps: TriageDeps, source: str) -> tuple[TriageResult, dict[str, Any] | None]:
+def triage_and_register(query: str, deps: TriageDeps, source: str) -> tuple[TriageResult, dict[str, Any]]:
     result = triage(query, deps.provider, deps.prompt, deps.max_parse_retries, deps.guardrails)
+    record = build_record(result, source=source, prompt_version=deps.prompt.version)
     try:
-        record = build_record(result, source=source, prompt_version=deps.prompt.version)
         append_metrics(record, METRICS_FILE)
     except MetricsError as error:
         print(f"Aviso: no se registraron las métricas: {error}", file=sys.stderr)
-        return result, None
-    if record["cost_usd"] is None:
-        print(
-            f"Aviso: {result.model} no tiene precio en config/models.yaml; cost_usd queda en null",
-            file=sys.stderr,
-        )
     return result, record

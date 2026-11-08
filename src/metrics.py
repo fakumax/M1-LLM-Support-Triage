@@ -1,4 +1,5 @@
 import json
+import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -59,12 +60,7 @@ def find_pricing(provider: str, model: str) -> ModelPricing | None:
 
 
 def build_record(result: TriageResult, source: str, prompt_version: str) -> dict[str, Any]:
-    pricing = find_pricing(result.provider, result.model)
-    cost_usd = None
-    cost_usd_list_price = None
-    if pricing is not None:
-        cost_usd = _cost(result, pricing.price_in_per_mtok, pricing.price_out_per_mtok)
-        cost_usd_list_price = _cost(result, pricing.list_price.in_per_mtok, pricing.list_price.out_per_mtok)
+    cost_usd, cost_usd_list_price = _costs(result)
     return {
         "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "source": source,
@@ -84,6 +80,21 @@ def build_record(result: TriageResult, source: str, prompt_version: str) -> dict
         "category": result.response.category,
         "guardrail": list(result.guardrail) if result.guardrail else None,
     }
+
+
+def _costs(result: TriageResult) -> tuple[float | None, float | None]:
+    try:
+        pricing = find_pricing(result.provider, result.model)
+    except MetricsError as error:
+        print(f"Aviso: {error}; los costos quedan en null", file=sys.stderr)
+        return None, None
+    if pricing is None:
+        print(f"Aviso: {result.model} sin precio en config/models.yaml; los costos quedan en null", file=sys.stderr)
+        return None, None
+    return (
+        _cost(result, pricing.price_in_per_mtok, pricing.price_out_per_mtok),
+        _cost(result, pricing.list_price.in_per_mtok, pricing.list_price.out_per_mtok),
+    )
 
 
 def append_metrics(record: dict[str, Any], path: Path) -> None:
