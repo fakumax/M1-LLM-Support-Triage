@@ -5,6 +5,7 @@ from typing import Any
 import yaml
 
 from src.config import ROOT_DIR
+from src.schema import ACTION_CATALOG
 
 PROMPTS_DIR = ROOT_DIR / "prompts"
 
@@ -26,14 +27,29 @@ def load_prompt(version: str) -> Prompt:
     paths = sorted(PROMPTS_DIR.glob(f"{version}_*.yaml"))
     if not paths:
         raise PromptError(f"no existe el prompt {version} en prompts/")
-    data = yaml.safe_load(paths[0].read_text(encoding="utf-8"))
-    return Prompt(
-        version=data["version"],
-        technique=data["technique"],
-        system=data["system"],
-        user_template=data["user_template"],
-        examples=data.get("examples") or [],
-    )
+    try:
+        data = yaml.safe_load(paths[0].read_text(encoding="utf-8"))
+        prompt = Prompt(
+            version=data["version"],
+            technique=data["technique"],
+            system=data["system"],
+            user_template=data["user_template"],
+            examples=_examples(data.get("examples") or []),
+        )
+    except (OSError, KeyError, TypeError, yaml.YAMLError) as error:
+        raise PromptError(f"prompt {version} mal formado") from error
+    _check_catalog(prompt)
+    return prompt
+
+
+def _examples(raw: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [{"ticket": item["ticket"], "output": item["output"]} for item in raw]
+
+
+def _check_catalog(prompt: Prompt) -> None:
+    missing = [action for action in ACTION_CATALOG if action not in prompt.system]
+    if missing:
+        raise PromptError(f"prompt {prompt.version} no menciona estas acciones del catálogo: {', '.join(missing)}")
 
 
 def build_messages(prompt: Prompt, query: str) -> tuple[str, list[dict[str, str]]]:
