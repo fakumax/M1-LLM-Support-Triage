@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from math import ceil, fsum
 from typing import Any
 
+from src.policy import find_promises
 from src.schema import ACTION_CATALOG, CATEGORIES
 
 CONFIDENCE_THRESHOLD = 0.8
@@ -13,6 +14,7 @@ PROJECTED_TICKETS_PER_DAY = 400
 class CaseOutcome:
     id: str
     query: str
+    answer: str
     expected: str
     predicted: str
     confidence: float
@@ -34,6 +36,10 @@ class CaseOutcome:
     def actions_outside_catalog(self) -> list[str]:
         return [action for action in self.actions if action not in ACTION_CATALOG]
 
+    @property
+    def promises(self) -> list[str]:
+        return find_promises(self.answer)
+
 
 def summarize(outcomes: list[CaseOutcome]) -> dict[str, Any]:
     if not outcomes:
@@ -53,6 +59,7 @@ def summarize(outcomes: list[CaseOutcome]) -> dict[str, Any]:
         "latency_s": latency_stats(outcomes),
         "tokens": token_stats(outcomes),
         "cost_usd": cost_stats(outcomes),
+        "promises": promise_stats(outcomes),
         "fallback_ids": [outcome.id for outcome in outcomes if outcome.fallback],
         "failed_ids": [outcome.id for outcome in outcomes if not outcome.correct],
     }
@@ -140,6 +147,15 @@ def cost_stats(outcomes: list[CaseOutcome]) -> dict[str, Any]:
         "tickets_per_day": PROJECTED_TICKETS_PER_DAY,
         "real_per_day": _round_usd(_scale(real_per_ticket, PROJECTED_TICKETS_PER_DAY)),
         "list_per_day": _round_usd(_scale(list_per_ticket, PROJECTED_TICKETS_PER_DAY)),
+    }
+
+
+def promise_stats(outcomes: list[CaseOutcome]) -> dict[str, Any]:
+    flagged = [outcome for outcome in outcomes if outcome.promises]
+    return {
+        "cases": len(flagged),
+        "share": _ratio(len(flagged), len(outcomes)),
+        "ids": [outcome.id for outcome in flagged],
     }
 
 

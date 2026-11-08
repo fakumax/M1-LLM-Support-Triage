@@ -38,6 +38,7 @@ def render_markdown(info: RunInfo, summary: dict[str, Any], outcomes: list[CaseO
         _calibration(summary),
         _operations(summary),
         _failures(outcomes),
+        _promises(outcomes),
     ]
     return "\n\n".join("\n".join(block) for block in blocks) + "\n"
 
@@ -55,6 +56,7 @@ def _case_payload(outcome: CaseOutcome) -> dict[str, Any]:
     data = asdict(outcome)
     data["correct"] = outcome.correct
     data["actions_outside_catalog"] = outcome.actions_outside_catalog
+    data["promises"] = outcome.promises
     return data
 
 
@@ -77,6 +79,8 @@ def _global(summary: dict[str, Any]) -> list[str]:
         f"| Accuracy | {_pct(summary['accuracy'])} ({summary['correct']} de {summary['cases']}) |",
         f"| Macro-F1 | {summary['macro_f1']:.3f} |",
         f"| Respaldos | {summary['contract']['fallback']} |",
+        f"| Respuestas con promesas indebidas | {_pct(summary['promises']['share'])} "
+        f"({summary['promises']['cases']} de {summary['cases']}) |",
     ]
 
 
@@ -210,6 +214,21 @@ def _failures(outcomes: list[CaseOutcome]) -> list[str]:
             f"| {outcome.id} | {outcome.expected} | {outcome.predicted} | {outcome.confidence:.2f} "
             f"| {origin} | {_preview(outcome.query)} |"
         )
+    return lines
+
+
+def _promises(outcomes: list[CaseOutcome]) -> list[str]:
+    flagged = [outcome for outcome in outcomes if outcome.promises]
+    lines = [f"## Promesas indebidas ({len(flagged)})", ""]
+    if not flagged:
+        return lines + ["Ninguna."]
+    lines += [
+        "| id | fragmentos detectados |",
+        "|---|---|",
+    ]
+    for outcome in flagged:
+        fragments = " / ".join(_preview(fragment) for fragment in outcome.promises)
+        lines.append(f"| {outcome.id} | {fragments} |")
     return lines
 
 

@@ -121,6 +121,7 @@ def _outcome(case: dict[str, Any], result: TriageResult, record: dict[str, Any] 
     return CaseOutcome(
         id=case["id"],
         query=case["query"],
+        answer=response.answer,
         expected=case["expected_category"],
         predicted=response.category,
         confidence=response.confidence,
