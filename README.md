@@ -284,4 +284,4 @@ Las decisiones que más pesan. La tabla completa, con la alternativa descartada 
 
 ## Uso de IA
 
-Claude Code (Claude Opus 5.5) orquestó el proyecto, con subagentes Claude Haiku 5.5 para implementar cada etapa. El orquestador tomó las decisiones técnicas dentro del alcance, los proveedores y las reglas que fijó el humano. El humano revisa y aprueba la entrega, y autorizó el push. Los prompts de cada etapa están en [docs/prompts/](docs/prompts/README.md), y las decisiones que salieron de ellos y los límites de ese uso, en [docs/uso-de-ia.md](docs/uso-de-ia.md).
+Claude Code (Claude Opus 5.5) orquestó el proyecto, con subagentes Claude Haiku 5.5 para implementar cada etapa. El orquestador tomó las decisiones técnicas dentro del alcance, los proveedores y las reglas que fijó el humano. El humano revisa y aprueba la entrega; quién subió cada parte está en [docs/uso-de-ia.md](docs/uso-de-ia.md). Los prompts de cada etapa están en [docs/prompts/](docs/prompts/README.md), y las decisiones que salieron de ellos y los límites de ese uso, en [docs/uso-de-ia.md](docs/uso-de-ia.md).

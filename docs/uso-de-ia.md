@@ -11,7 +11,7 @@ La consigna pide documentar los prompts usados con IA y explicar cómo influyero
 
 ## Cómo se trabajó
 
-- Una rama por etapa, creada desde la punta de la anterior (`parte-02-flujo-minimo` a `parte-13-readme`). Los subagentes nunca hicieron push. El orquestador subió el commit inicial y, con autorización del humano, la entrega.
+- Una rama por etapa, creada desde la punta de la anterior (`parte-02-flujo-minimo` a `parte-13-readme`). Los subagentes nunca hicieron push. El humano subió las etapas 2 a 12. El orquestador subió el commit inicial y, con autorización del humano, los commits de la etapa 13.
 - Reglas comunes para todos los agentes, fijadas en la especificación: Conventional Commits en español, en minúscula y de 50 caracteres como máximo; sin atribución a IA en los mensajes de commit; sin `git push`; `.env`, notas y `data/cache/` fuera de Git; código sin comentarios; SOLID aplicado de forma concreta; runner sin frameworks de testing; stdout de la CLI solo con JSON; README solo con lo que funciona.
 - Cada etapa terminó con una explicación local: decisiones con su alternativa descartada, pruebas con salida real y preguntas de checkpoint.
 - Las llamadas a APIs se minimizaron. Cada request real quedó en `data/metrics.jsonl`.
