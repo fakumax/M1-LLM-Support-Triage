@@ -100,4 +100,4 @@ La fila de dos tickets es una estimación con muestra chica. Las demás salen de
 - Los intentos fallidos (429, 5xx, timeout) no aportan tokens porque no devuelven uso. Sus tokens no se cuentan.
 - Si el modelo no tiene precio en `config/models.yaml`, `cost_usd` y `cost_usd_list_price` quedan en `null` y la CLI avisa por stderr.
 - El cupo diario de OpenRouter depende de la compra de la cuenta: 50 requests por día si se compraron menos de USD 10 en créditos, y 1.000 si se compraron USD 10 o más. Con 400 tickets por día, el cupo de 50 no alcanza.
-- Con la caché activada, un acierto tiene costo 0 en ambas columnas y conserva los tokens originales para auditar lo que costó la respuesta guardada.
+- Con la caché activada, un acierto tiene `cost_usd` en 0 y conserva los tokens originales para auditar lo que costó la respuesta guardada: `cost_usd_list_price` sale de esos tokens.
