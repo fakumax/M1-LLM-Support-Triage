@@ -6,12 +6,12 @@ La consigna pide documentar los prompts usados con IA y explicar cómo influyero
 
 - **Claude Code como orquestador** (Claude Opus 5.5). Diseñó la arquitectura, escribió la especificación técnica común y las instrucciones de cada etapa, y revisó cada etapa. Tomó las decisiones técnicas dentro del alcance, los proveedores y las reglas que fijó el humano. El humano revisa y aprueba la entrega.
 - **Subagentes Claude Haiku 5.5** (esfuerzo extra-high), uno por etapa, para implementar. Algunas tareas separadas los usaron para redactar el borrador del dataset y el holdout.
-- **Revisión final de cada rama** con Claude Opus 5.5.
+- **Revisión final de cada rama** con Claude Opus 5.5: cinco revisores, en solo lectura, revisaron las diez ramas.
 - **Modelos del producto**: `nvidia/nemotron-3.5-super-vl:free` y `dots-studio/dots-3-note-preview:free` por OpenRouter, y `gemini-3.5-flash-lite` por Gemini. Son los modelos que el servicio llama y que se evalúan. No se usaron para programar, y el repo no usa un LLM como juez: las promesas indebidas se detectan con reglas.
 
 ## Cómo se trabajó
 
-- Una rama por etapa, creada desde la punta de la anterior (`parte-02-flujo-minimo` a `parte-12-revision`). Nada se empujó al remoto desde las herramientas: lo hizo el humano.
+- Una rama por etapa, creada desde la punta de la anterior (`parte-02-flujo-minimo` a `parte-13-readme`). Los subagentes nunca hicieron push. El orquestador subió el commit inicial y, con autorización del humano, la entrega.
 - Reglas comunes para todos los agentes, fijadas en la especificación: Conventional Commits en español, en minúscula y de 50 caracteres como máximo; sin atribución a IA en los mensajes de commit; sin `git push`; `.env`, notas y `data/cache/` fuera de Git; código sin comentarios; SOLID aplicado de forma concreta; runner sin frameworks de testing; stdout de la CLI solo con JSON; README solo con lo que funciona.
 - Cada etapa terminó con una explicación local: decisiones con su alternativa descartada, pruebas con salida real y preguntas de checkpoint.
 - Las llamadas a APIs se minimizaron. Cada request real quedó en `data/metrics.jsonl`.
@@ -89,6 +89,12 @@ La consigna pide documentar los prompts usados con IA y explicar cómo influyero
 - **Objetivo del prompt:** la 12A corrige el código según las observaciones de cinco revisiones Opus. La 12B corrige la seguridad de autolesión, los tags del dataset, la documentación y las notas, y deja la explicación de la revisión.
 - **Instrucciones clave:** verificar la evidencia antes de cambiar nada; validar cada cambio de guardrails sin llamar a la API contra el dataset, el holdout y la suite adversarial; re-correr la suite adversarial real, y no el dataset si ninguna decisión cambia; cada número sale de `evals/results/`, `data/metrics.jsonl`, `config/models.yaml` o del reporte de la 12A; las únicas llamadas reales de la 12B son las tres del clon limpio.
 - **Decisiones que influyó:** el detector de promesas pasó a listas con nombre y casos versionados; los tags tienen definiciones con umbrales, y `frontera` reemplaza a `ambiguo`; la autolesión de terceros se detecta por verbos y no por el sustantivo; la documentación declara lo que la revisión no corrigió.
+
+### Etapa 13: README más corto
+
+- **Objetivo del prompt:** reescribir el README de 427 líneas como puerta de entrada (instalar, configurar, ejecutar y entender las decisiones) y mover el detalle a `docs/`, sin perder datos ni cifras.
+- **Instrucciones clave:** las 12 exigencias de la consigna siguen en el README; la tabla de módulos, el árbol de carpetas y el SOLID detallado van a `docs/arquitectura.md`; la tabla completa de decisiones y la lista completa de limitaciones, a `docs/decisiones-y-limitaciones.md`; ningún número nuevo; cada viñeta de la revisión final se verifica antes de salir del README; enlaces relativos comprobados con un script y sin anclas; ninguna llamada a APIs.
+- **Decisiones que influyó:** el README queda como puerta de entrada y el detalle vive en `docs/`, sin perder datos. Las viñetas de la revisión final que no estaban en ningún doc de referencia se agregaron a `docs/seguridad.md`, `docs/evals.md` o esta página.
 
 ## Decisiones que salieron de experimentos guiados por IA
 
