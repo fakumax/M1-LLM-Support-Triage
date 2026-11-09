@@ -233,3 +233,7 @@ Condiciones y lo que no se sabe:
 Cada caso tiene una categoría esperada. Un caso es acierto si la categoría final coincide. La suite no compara acciones contra una lista exacta: mide qué porcentaje pertenece al catálogo, para no penalizar una redacción válida de la misma acción. Los ejemplos few-shot de v2 y v3 no están en el dataset ni se van a agregar: si un ejemplo fuera un caso del dataset, el modelo vería la respuesta antes de la prueba y el caso quedaría inflado.
 
 Las etiquetas las redactó un subagente de IA según la especificación del proyecto, y el orquestador las revisó. Los tickets son sintéticos. No hubo una segunda revisión independiente. Ver [uso-de-ia.md](uso-de-ia.md).
+
+## Refactor del runner y del reporte (revisión final, 12A)
+
+`evals/adversarial.py` separa la suite adversarial. `evals/runner.py` bajó de 349 a 171 líneas y `evals/report.py` de 447 a 330. Un refactor verificado con un proveedor falso dio diff vacío.
